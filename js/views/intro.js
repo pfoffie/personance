@@ -6,7 +6,7 @@ import I18n from '../i18n.js';
 
 const IntroView = (() => {
 
-  function render({ showBack = false } = {}) {
+  function render({ showBack = false, version = '' } = {}) {
     const t = I18n.t.bind(I18n);
 
     const headerHTML = showBack
@@ -48,6 +48,7 @@ const IntroView = (() => {
 
         ${!showBack ? `<div class="spacer"></div>
         <button class="primary-btn" data-action="start">${t('intro.getStarted')}</button>` : ''}
+        <p class="hint-text intro-version">${t('intro.versionLabel', { version })}</p>
       </div>`;
   }
 

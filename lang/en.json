@@ -78,7 +78,8 @@
     "privacyText": "Everything is stored locally on your device. No accounts, no servers, no tracking.",
     "pwaTitle": "Save it like an app",
     "pwaText": "Personance is a PWA. Add it to your home screen so it stays handy and works offline.",
-    "getStarted": "Get Started"
+    "getStarted": "Get Started",
+    "versionLabel": "Version {version}"
   },
   "general": {
     "back": "Back",

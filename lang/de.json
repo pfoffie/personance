@@ -78,7 +78,8 @@
     "privacyText": "Alles wird lokal auf deinem Gerät gespeichert. Keine Konten, keine Server, kein Tracking.",
     "pwaTitle": "Wie eine App speichern",
     "pwaText": "Personance ist eine PWA. Füge sie deinem Home-Bildschirm hinzu, damit sie griffbereit ist und offline funktioniert.",
-    "getStarted": "Los geht's"
+    "getStarted": "Los geht's",
+    "versionLabel": "Version {version}"
   },
   "general": {
     "back": "Zurück",

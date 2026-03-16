@@ -87,7 +87,7 @@ const App = (() => {
 
   function _showIntro(showBack) {
     _clearViewBindings();
-    _root.innerHTML = IntroView.render({ showBack });
+    _root.innerHTML = IntroView.render({ showBack, version: APP_VERSION });
     _unbindView = IntroView.bind(_root, {
       onStart: () => {
         localStorage.setItem('personance-intro-seen', '1');
