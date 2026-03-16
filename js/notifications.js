@@ -121,16 +121,16 @@ const Notifications = (() => {
       if (perm !== 'granted') return { enabled: false, permission: perm, subscription: null };
     }
     if (_permission !== 'granted') return { enabled: false, permission: _permission, subscription: null };
+    _enabled = true;
     const sub = await registerPush({ applicationServerKey });
-    _enabled = !!sub;
     return { enabled: _enabled, permission: _permission, subscription: sub ? sub.toJSON() : null };
   }
 
   async function restorePush({ applicationServerKey } = {}) {
     if (!isPushSupported()) return { enabled: false, permission: _permission, subscription: null };
     if (_permission !== 'granted') return { enabled: false, permission: _permission, subscription: null };
+    _enabled = true;
     const sub = await registerPush({ applicationServerKey });
-    _enabled = !!sub;
     return { enabled: _enabled, permission: _permission, subscription: sub ? sub.toJSON() : null };
   }
 
