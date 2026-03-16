@@ -675,6 +675,10 @@ input[type="range"] {
 .toggle-switch.active .toggle-knob {
   transform: translateX(20px);
 }
+.toggle-switch.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* --- Surprise mode (clickable date) --- */
 .contact-card-date.is-surprise {
@@ -696,6 +700,15 @@ input[type="range"] {
 .mt-auto { margin-top: auto; }
 .text-center { text-align: center; }
 .hidden { display: none !important; }
+.mono { font-family: 'SFMono-Regular', SFMono-Regular, Menlo, monospace; }
+.hint-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+.pwa-section .primary-btn {
+  margin-top: 4px;
+}
 
 /* --- Intro page --- */
 .intro {

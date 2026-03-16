@@ -2,7 +2,7 @@
  * Personance — Service Worker
  * Caches all app assets for full offline support.
  */
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const CACHE_NAME = `personance-v${APP_VERSION}`;
 const ASSETS = [
   './',
@@ -19,8 +19,9 @@ const ASSETS = [
   './lang/en.json',
   './lang/de.json',
   './manifest.json',
-  './icons/icon-192.svg',
-  './icons/icon-512.svg',
+  './assets/icons/icon_192.png',
+  './assets/icons/icon_512.png',
+  './assets/icons/icon_180.png',
 ];
 
 // Install — cache all assets
@@ -78,8 +79,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Personance', {
       body: data.body || '',
-      icon: './icons/icon-192.svg',
-      badge: './icons/icon-192.svg',
+      icon: './assets/icons/icon_192.png',
+      badge: './assets/icons/icon_192.png',
       data: data,
     })
   );

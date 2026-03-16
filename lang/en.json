@@ -39,6 +39,12 @@
     "notifications": "Notifications",
     "notificationsEnable": "Enable notifications",
     "notificationsDescription": "Get notified when it's time to follow up on something.",
+    "notificationsOn": "Web push is on.",
+    "notificationsOff": "Push is off. Tap enable to turn it back on.",
+    "notificationsPrompt": "Tap enable to allow reminders.",
+    "notificationsDenied": "Notifications are blocked in your browser settings.",
+    "notificationsUnsupported": "This device does not support web push.",
+    "notificationsWorking": "Updating notification settings…",
     "days": {
       "mon": "Mo",
       "tue": "Tu",
@@ -47,7 +53,15 @@
       "fri": "Fr",
       "sat": "Sa",
       "sun": "Su"
-    }
+    },
+    "pwaTitle": "Save Personance",
+    "pwaDescription": "Personance is a PWA. Add it to your home screen for a faster, offline-ready experience.",
+    "pwaInstallButton": "Save app",
+    "pwaInstallHelp": "Use browser menu to save",
+    "pwaManualText": "If you don't see a button, use your browser's \"Add to Home Screen\" option.",
+    "pwaManualTitle": "Save Personance",
+    "pwaInstalledTitle": "Already installed",
+    "pwaInstalledText": "Personance is already saved on this device."
   },
   "intro": {
     "title": "Welcome to Personance",
@@ -58,6 +72,8 @@
     "howText": "Add anything you want to keep up with — a friend, a hobby, a habit. Set a distance (how many days between reminders) and an uncertainty (a bit of randomness so it feels natural, not robotic). Personance picks the right moment to nudge you.",
     "privacy": "Your data stays yours",
     "privacyText": "Everything is stored locally on your device. No accounts, no servers, no tracking.",
+    "pwaTitle": "Save it like an app",
+    "pwaText": "Personance is a PWA. Add it to your home screen so it stays handy and works offline.",
     "getStarted": "Get Started"
   },
   "general": {

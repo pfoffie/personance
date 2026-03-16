@@ -41,6 +41,11 @@ const IntroView = (() => {
           <p>${t('intro.privacyText')}</p>
         </div>
 
+        <div class="intro-section">
+          <h2>${t('intro.pwaTitle')}</h2>
+          <p>${t('intro.pwaText')}</p>
+        </div>
+
         ${!showBack ? `<div class="spacer"></div>
         <button class="primary-btn" data-action="start">${t('intro.getStarted')}</button>` : ''}
       </div>`;

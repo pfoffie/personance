@@ -11,7 +11,7 @@ import ContactEditorView from './views/contactEditor.js';
 import SettingsView from './views/settings.js';
 import IntroView from './views/intro.js';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const VERSION_STORAGE_KEY = 'personance-installed-version';
 
 const App = (() => {
@@ -23,9 +23,22 @@ const App = (() => {
   let _updateAvailable = false;
   let _waitingSW = null;
   let _pendingSWVersion = null;
+  let _installPrompt = null;
+  let _installAvailable = false;
+  let _notificationState = { permission: 'default', pushSupported: false, enabled: false, subscription: null };
 
   async function init() {
     _root = document.getElementById('app');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      _installPrompt = e;
+      _installAvailable = true;
+      if (_root && _root.querySelector('.settings')) {
+        _showSettings();
+      }
+    });
+    _installAvailable = !_isStandalone();
 
     // Open database
     await Store.open();
@@ -46,6 +59,7 @@ const App = (() => {
     // Init notifications
     Notifications.init();
     Notifications.setEnabled(_settings.notificationsEnabled);
+    await _bootstrapNotifications();
 
     // Load contacts
     _contacts = await Store.getAllContacts();
@@ -109,9 +123,17 @@ const App = (() => {
 
   async function _showSettings() {
     _clearViewBindings();
-    _root.innerHTML = SettingsView.render(_settings, { updateAvailable: _updateAvailable });
+    const notificationState = Notifications.getSupportState();
+    _root.innerHTML = SettingsView.render(_settings, {
+      updateAvailable: _updateAvailable,
+      notificationState,
+      installAvailable: _installAvailable && !_isStandalone(),
+    });
     _unbindView = SettingsView.bind(_root, {
       settings: _settings,
+      notificationState,
+      onToggleNotifications: (val) => _toggleNotifications(val),
+      onInstall: () => _promptInstall(),
       onSave: (data, langChanged) => _saveSettings(data, langChanged),
       onApplyUpdate: () => _applyUpdate(),
       onBack: () => _showList(),
@@ -163,10 +185,12 @@ const App = (() => {
     await Store.saveContact(contact);
     _contacts = await Store.getAllContacts();
     _showList();
-    Notifications.notify(
-      I18n.t('contacts.released'),
-      Scheduler.formatApproxDate(contact.reminderDate, I18n.currentLang())
-    );
+    if (_settings.notificationsEnabled) {
+      Notifications.notify(
+        I18n.t('contacts.released'),
+        Scheduler.formatApproxDate(contact.reminderDate, I18n.currentLang())
+      );
+    }
   }
 
   async function _deleteContact(id) {
@@ -208,16 +232,71 @@ const App = (() => {
     }
   }
 
+  async function _bootstrapNotifications() {
+    _notificationState = Notifications.getSupportState();
+    if (!_settings.notificationsEnabled) {
+      return;
+    }
+    const restored = await Notifications.restorePush();
+    _notificationState = { ..._notificationState, ...restored };
+    if (!restored.enabled || restored.permission !== 'granted') {
+      _settings.notificationsEnabled = false;
+      await Store.saveSettings(_settings);
+      Notifications.setEnabled(false);
+    }
+  }
+
+  async function _toggleNotifications(enable) {
+    if (!enable) {
+      Notifications.setEnabled(false);
+      _settings.notificationsEnabled = false;
+      await Store.saveSettings(_settings);
+      await Notifications.disablePush();
+      _notificationState = Notifications.getSupportState();
+      return { ..._notificationState };
+    }
+    const result = await Notifications.enablePush();
+    Notifications.setEnabled(result.enabled);
+    _settings.notificationsEnabled = result.enabled;
+    if (!result.enabled) {
+      _settings.notificationsEnabled = false;
+    }
+    await Store.saveSettings(_settings);
+    _notificationState = Notifications.getSupportState();
+    return { ..._notificationState, permission: result.permission };
+  }
+
+  async function _promptInstall() {
+    if (_isStandalone()) {
+      Notifications.notify(I18n.t('settings.pwaInstalledTitle'), I18n.t('settings.pwaInstalledText'));
+      return;
+    }
+    if (_installPrompt) {
+      _installPrompt.prompt();
+      await _installPrompt.userChoice;
+      _installPrompt = null;
+      _installAvailable = false;
+      return;
+    }
+    Notifications.notify(I18n.t('settings.pwaManualTitle'), I18n.t('settings.pwaManualText'));
+  }
+
+  function _isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  }
+
   // --- Background checks ---
 
   function _checkDueContacts() {
     const now = new Date();
     _contacts.forEach(c => {
       if (c.reminderDate && new Date(c.reminderDate) <= now && !c._notified) {
-        Notifications.notify(
-          I18n.t('contacts.dueNow'),
-          c.name
-        );
+        if (_settings.notificationsEnabled) {
+          Notifications.notify(
+            I18n.t('contacts.dueNow'),
+            c.name
+          );
+        }
         c._notified = true;
       }
     });

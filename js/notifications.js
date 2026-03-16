@@ -1,17 +1,19 @@
 /**
  * Personance — Notification abstraction layer
- * Currently supports in-app visual alerts.
- * Designed to be extended with Web Push API / APNs in future versions.
+ * Handles in-app, native, and Web Push notifications.
  */
 const Notifications = (() => {
+  const SUBSCRIPTION_STORAGE_KEY = 'personance-push-subscription';
   let _enabled = false;
   let _permission = 'default'; // 'default' | 'granted' | 'denied'
+  let _subscription = null;
 
   /** Initialize and check browser capabilities */
   function init() {
     if ('Notification' in window) {
       _permission = Notification.permission;
     }
+    _subscription = _loadStoredSubscription();
   }
 
   /** Request permission for native notifications */
@@ -24,6 +26,10 @@ const Notifications = (() => {
 
   function isSupported() {
     return 'Notification' in window;
+  }
+
+  function isPushSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window;
   }
 
   function getPermission() {
@@ -45,35 +51,87 @@ const Notifications = (() => {
    * @param {object} [options] - Extra options (icon, tag, data…)
    */
   function notify(title, body, options = {}) {
-    // Try native notification
-    if (_enabled && _permission === 'granted' && 'Notification' in window) {
-      try {
-        const n = new Notification(title, { body, icon: 'icons/icon-192.svg', ...options });
-        n.onclick = () => {
-          window.focus();
-          n.close();
-          if (options.onClick) options.onClick();
-        };
+    const payload = { body, icon: 'assets/icons/icon_192.png', badge: 'assets/icons/icon_192.png', ...options };
+
+    if (_enabled && _permission === 'granted') {
+      if (isPushSupported()) {
+        navigator.serviceWorker.ready
+          .then((reg) => reg.showNotification(title, payload))
+          .catch(() => _showNativeOrFallback(title, body, payload, options));
         return;
-      } catch (_) {
-        // SW-based notification needed on mobile — fall through to in-app
+      }
+      if ('Notification' in window) {
+        _showNativeOrFallback(title, body, payload, options);
+        return;
       }
     }
-    // In-app fallback
+
     _showInApp(title, body);
   }
 
   /**
-   * Register for push notifications (future).
-   * Placeholder — will integrate with push service subscription.
+   * Register for push notifications and return the subscription.
    */
-  async function registerPush() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  async function registerPush({ applicationServerKey } = {}) {
+    if (!isPushSupported()) return null;
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      _subscription = existing;
+      _persistSubscription(existing);
+      return existing;
+    }
+    try {
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey ? _toUint8Array(applicationServerKey) : undefined,
+      });
+      _subscription = sub;
+      _persistSubscription(sub);
+      return sub;
+    } catch (_) {
       return null;
     }
+  }
+
+  async function disablePush() {
+    if (!isPushSupported()) {
+      _subscription = null;
+      _persistSubscription(null);
+      return false;
+    }
     const reg = await navigator.serviceWorker.ready;
-    // Future: reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: ... })
-    return reg;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      try {
+        await existing.unsubscribe();
+      } catch (_) {
+        // ignore
+      }
+    }
+    _subscription = null;
+    _persistSubscription(null);
+    return true;
+  }
+
+  async function enablePush({ applicationServerKey, requestPermissionFirst = true } = {}) {
+    if (!isPushSupported()) return { enabled: false, permission: 'unsupported', subscription: null };
+    if (requestPermissionFirst && _permission === 'default') {
+      const perm = await requestPermission();
+      if (perm !== 'granted') return { enabled: false, permission: perm, subscription: null };
+    }
+    if (_permission !== 'granted') return { enabled: false, permission: _permission, subscription: null };
+    const sub = await registerPush({ applicationServerKey });
+    _enabled = !!sub;
+    return { enabled: _enabled, permission: _permission, subscription: sub ? sub.toJSON() : null };
+  }
+
+  async function restorePush({ applicationServerKey } = {}) {
+    if (!isPushSupported()) return { enabled: false, permission: _permission, subscription: null };
+    if (_permission !== 'granted') return { enabled: false, permission: _permission, subscription: null };
+    const sub = await registerPush({ applicationServerKey });
+    _enabled = !!sub;
+    return { enabled: _enabled, permission: _permission, subscription: sub ? sub.toJSON() : null };
   }
 
   /** Simple in-app toast notification */
@@ -95,7 +153,80 @@ const Notifications = (() => {
     return d.innerHTML;
   }
 
-  return { init, requestPermission, isSupported, getPermission, setEnabled, isEnabled, notify, registerPush };
+  function _showNativeOrFallback(title, body, payload, options) {
+    try {
+      const n = new Notification(title, payload);
+      n.onclick = () => {
+        window.focus();
+        n.close();
+        if (options.onClick) options.onClick();
+      };
+    } catch (_) {
+      _showInApp(title, body);
+    }
+  }
+
+  function _persistSubscription(sub) {
+    try {
+      if (!sub) {
+        localStorage.removeItem(SUBSCRIPTION_STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(SUBSCRIPTION_STORAGE_KEY, JSON.stringify(sub.toJSON()));
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  function _loadStoredSubscription() {
+    try {
+      const raw = localStorage.getItem(SUBSCRIPTION_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function getSubscription() {
+    return _subscription || _loadStoredSubscription();
+  }
+
+  function getSupportState() {
+    return {
+      permission: _permission,
+      enabled: _enabled,
+      pushSupported: isPushSupported(),
+      subscription: getSubscription(),
+    };
+  }
+
+  function _toUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  return {
+    init,
+    requestPermission,
+    isSupported,
+    isPushSupported,
+    getPermission,
+    setEnabled,
+    isEnabled,
+    notify,
+    registerPush,
+    enablePush,
+    restorePush,
+    disablePush,
+    getSubscription,
+    getSupportState,
+  };
 })();
 
 export default Notifications;

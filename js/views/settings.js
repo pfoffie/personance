@@ -5,9 +5,19 @@ import I18n from '../i18n.js';
 
 const SettingsView = (() => {
 
-  function render(settings, { updateAvailable = false } = {}) {
+  function render(settings, { updateAvailable = false, notificationState = {}, installAvailable = false } = {}) {
     const t = I18n.t.bind(I18n);
     const lang = I18n.currentLang();
+    const notifState = {
+      permission: notificationState.permission || 'default',
+      pushSupported: notificationState.pushSupported !== false,
+      enabled: !!settings.notificationsEnabled,
+      subscription: notificationState.subscription,
+    };
+    const notificationStatus = _notificationStatusText(notifState, t);
+    const subscriptionHint = notifState.subscription && notifState.subscription.endpoint
+      ? _formatEndpoint(notifState.subscription.endpoint)
+      : null;
 
     // Day buttons — week starts Monday, JS getDay() 0=Sun
     const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // Mon–Sun
@@ -70,10 +80,30 @@ const SettingsView = (() => {
         </div>
 
         <div class="settings-section">
+          <h2>${t('settings.notifications')}</h2>
+          <p>${t('settings.notificationsDescription')}</p>
           <label class="toggle-label">
             <span class="toggle-text">
-              <strong>${t('settings.surprise')}</strong>
-              <small>${t('settings.surpriseDescription')}</small>
+              <strong>${t('settings.notificationsEnable')}</strong>
+              <small data-notification-status>${notificationStatus}</small>
+            </span>
+            <span class="toggle-switch ${settings.notificationsEnabled ? 'active' : ''} ${notifState.pushSupported ? '' : 'disabled'}" id="notifications-toggle"></span>
+          </label>
+          ${subscriptionHint ? `<div class="hint-text mono">${subscriptionHint}</div>` : ''}
+        </div>
+
+        <div class="settings-section pwa-section">
+          <h2>${t('settings.pwaTitle')}</h2>
+          <p>${t('settings.pwaDescription')}</p>
+          <button class="primary-btn" id="install-pwa-btn">${installAvailable ? t('settings.pwaInstallButton') : t('settings.pwaInstallHelp')}</button>
+          <p class="hint-text">${t('settings.pwaManualText')}</p>
+        </div>
+
+         <div class="settings-section">
+           <label class="toggle-label">
+             <span class="toggle-text">
+               <strong>${t('settings.surprise')}</strong>
+               <small>${t('settings.surpriseDescription')}</small>
             </span>
             <span class="toggle-switch ${settings.surpriseMode ? 'active' : ''}" id="surprise-toggle">
               <span class="toggle-knob"></span>
@@ -84,15 +114,17 @@ const SettingsView = (() => {
       </div>`;
   }
 
-  function bind(el, { settings, onSave, onBack, onApplyUpdate }) {
+  function bind(el, { settings, notificationState = {}, onSave, onBack, onApplyUpdate, onToggleNotifications, onInstall }) {
     const controller = new AbortController();
     const { signal } = controller;
+    const t = I18n.t.bind(I18n);
 
     let current = {
       availableDays: [...settings.availableDays],
       availableHours: [...settings.availableHours],
       language: settings.language,
       surpriseMode: !!settings.surpriseMode,
+      notificationsEnabled: !!settings.notificationsEnabled,
     };
 
     // Day toggle
@@ -146,6 +178,30 @@ const SettingsView = (() => {
       }, { signal });
     }
 
+    const notificationsToggle = el.querySelector('#notifications-toggle');
+    const notificationsStatus = el.querySelector('[data-notification-status]');
+    if (notificationsToggle && typeof onToggleNotifications === 'function') {
+      notificationsToggle.addEventListener('click', async () => {
+        if (notificationsToggle.classList.contains('disabled')) return;
+        notificationsStatus.textContent = t('settings.notificationsWorking');
+        const result = await onToggleNotifications(!current.notificationsEnabled);
+        current.notificationsEnabled = !!result.enabled;
+        notificationsToggle.classList.toggle('active', current.notificationsEnabled);
+        const state = {
+          permission: result.permission || notificationState.permission,
+          pushSupported: typeof result.pushSupported === 'boolean' ? result.pushSupported : notificationState.pushSupported,
+          enabled: current.notificationsEnabled,
+          subscription: result.subscription || notificationState.subscription,
+        };
+        notificationsStatus.textContent = _notificationStatusText(state, t);
+      }, { signal });
+    }
+
+    const installBtn = el.querySelector('#install-pwa-btn');
+    if (installBtn && typeof onInstall === 'function') {
+      installBtn.addEventListener('click', () => onInstall(), { signal });
+    }
+
     const applyUpdateBtn = el.querySelector('#apply-update-btn');
     if (applyUpdateBtn && typeof onApplyUpdate === 'function') {
       applyUpdateBtn.addEventListener('click', () => onApplyUpdate(), { signal });
@@ -168,6 +224,20 @@ const SettingsView = (() => {
       clearTimeout(_saveTimer);
       controller.abort();
     };
+  }
+
+  function _notificationStatusText(state, t) {
+    if (!state.pushSupported) return t('settings.notificationsUnsupported');
+    if (state.permission === 'denied') return t('settings.notificationsDenied');
+    if (state.enabled && state.permission === 'granted') return t('settings.notificationsOn');
+    if (state.permission === 'granted') return t('settings.notificationsOff');
+    return t('settings.notificationsPrompt');
+  }
+
+  function _formatEndpoint(endpoint) {
+    if (!endpoint) return '';
+    if (endpoint.length <= 44) return endpoint;
+    return `${endpoint.slice(0, 26)}…${endpoint.slice(-12)}`;
   }
 
   return { render, bind };

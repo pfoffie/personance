@@ -39,6 +39,12 @@
     "notifications": "Benachrichtigungen",
     "notificationsEnable": "Benachrichtigungen aktivieren",
     "notificationsDescription": "Erhalte eine Benachrichtigung, wenn es Zeit ist, dich um etwas zu kümmern.",
+    "notificationsOn": "Web-Push ist aktiv.",
+    "notificationsOff": "Push ist aus. Tippe auf Aktivieren, um es einzuschalten.",
+    "notificationsPrompt": "Tippe auf Aktivieren, um Erinnerungen zu erlauben.",
+    "notificationsDenied": "Benachrichtigungen sind in den Browsereinstellungen blockiert.",
+    "notificationsUnsupported": "Dieses Gerät unterstützt kein Web-Push.",
+    "notificationsWorking": "Benachrichtigungseinstellungen werden aktualisiert…",
     "days": {
       "mon": "Mo",
       "tue": "Di",
@@ -47,7 +53,15 @@
       "fri": "Fr",
       "sat": "Sa",
       "sun": "So"
-    }
+    },
+    "pwaTitle": "Personance speichern",
+    "pwaDescription": "Personance ist eine PWA. Füge sie deinem Home-Bildschirm hinzu für ein schnelleres, offlinefähiges Erlebnis.",
+    "pwaInstallButton": "App speichern",
+    "pwaInstallHelp": "Über das Browser-Menü speichern",
+    "pwaManualText": "Wenn kein Button erscheint, nutze im Browser „Zum Home-Bildschirm hinzufügen“.",
+    "pwaManualTitle": "Personance speichern",
+    "pwaInstalledTitle": "Bereits installiert",
+    "pwaInstalledText": "Personance ist bereits auf diesem Gerät gespeichert."
   },
   "intro": {
     "title": "Willkommen bei Personance",
@@ -58,6 +72,8 @@
     "howText": "Füge alles hinzu, womit du in Kontakt bleiben möchtest — eine Freundin, ein Hobby, eine Gewohnheit. Lege eine Entfernung fest (wie viele Tage zwischen Erinnerungen) und eine Unsicherheit (etwas Zufall, damit es sich natürlich anfühlt). Personance wählt den richtigen Moment, um dich anzustupsen.",
     "privacy": "Deine Daten bleiben bei dir",
     "privacyText": "Alles wird lokal auf deinem Gerät gespeichert. Keine Konten, keine Server, kein Tracking.",
+    "pwaTitle": "Wie eine App speichern",
+    "pwaText": "Personance ist eine PWA. Füge sie deinem Home-Bildschirm hinzu, damit sie griffbereit ist und offline funktioniert.",
     "getStarted": "Los geht's"
   },
   "general": {
