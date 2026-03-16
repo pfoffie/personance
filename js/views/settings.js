@@ -116,6 +116,7 @@ const SettingsView = (() => {
           <select class="lang-select" id="lang-select">
             <option value="en" ${lang === 'en' ? 'selected' : ''}>English</option>
             <option value="de" ${lang === 'de' ? 'selected' : ''}>Deutsch</option>
+            <option value="es" ${lang === 'es' ? 'selected' : ''}>Español</option>
           </select>
         </div>
 
