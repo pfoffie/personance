@@ -2,7 +2,7 @@
  * Personance — Service Worker
  * Caches all app assets for full offline support.
  */
-const APP_VERSION = '1.1.4';
+const APP_VERSION = '1.1.5';
 const CACHE_NAME = `personance-v${APP_VERSION}`;
 const ASSETS = [
   './',
