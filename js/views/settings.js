@@ -71,34 +71,6 @@ const SettingsView = (() => {
           </div>
         </div>
 
-        <div class="settings-section">
-          <h2>${t('settings.language')}</h2>
-          <select class="lang-select" id="lang-select">
-            <option value="en" ${lang === 'en' ? 'selected' : ''}>English</option>
-            <option value="de" ${lang === 'de' ? 'selected' : ''}>Deutsch</option>
-          </select>
-        </div>
-
-        <div class="settings-section">
-          <h2>${t('settings.notifications')}</h2>
-          <p>${t('settings.notificationsDescription')}</p>
-          <label class="toggle-label">
-            <span class="toggle-text">
-              <strong>${t('settings.notificationsEnable')}</strong>
-              <small data-notification-status>${notificationStatus}</small>
-            </span>
-            <span class="toggle-switch ${settings.notificationsEnabled ? 'active' : ''} ${notifState.pushSupported ? '' : 'disabled'}" id="notifications-toggle"></span>
-          </label>
-          ${subscriptionHint ? `<div class="hint-text mono">${subscriptionHint}</div>` : ''}
-        </div>
-
-        <div class="settings-section pwa-section">
-          <h2>${t('settings.pwaTitle')}</h2>
-          <p>${t('settings.pwaDescription')}</p>
-          <button class="primary-btn" id="install-pwa-btn">${installAvailable ? t('settings.pwaInstallButton') : t('settings.pwaInstallHelp')}</button>
-          <p class="hint-text">${t('settings.pwaManualText')}</p>
-        </div>
-
          <div class="settings-section">
            <label class="toggle-label">
              <span class="toggle-text">
@@ -110,6 +82,39 @@ const SettingsView = (() => {
             </span>
           </label>
         </div>
+
+		<hr/>
+
+        <div class="settings-section">
+          <h2>${t('settings.notifications')}</h2>
+          <p>${t('settings.notificationsDescription')}</p>
+          <label class="toggle-label">
+            <span class="toggle-text">
+              <strong>${t('settings.notificationsEnable')}</strong>
+              <small data-notification-status>${notificationStatus}</small>
+            </span>
+            <span class="toggle-switch ${settings.notificationsEnabled ? 'active' : ''} ${notifState.pushSupported ? '' : 'disabled'}" id="notifications-toggle">
+				<span class="toggle-knob"></span>
+			</span>
+          </label>
+          ${subscriptionHint ? `<div class="hint-text mono">${subscriptionHint}</div>` : ''}
+        </div>
+
+        <div class="settings-section pwa-section">
+          <h2>${t('settings.pwaTitle')}</h2>
+          <p>${t('settings.pwaDescription')}</p>
+          <button class="primary-btn" id="install-pwa-btn">${installAvailable ? t('settings.pwaInstallButton') : t('settings.pwaInstallHelp')}</button>
+          <p class="hint-text">${t('settings.pwaManualText')}</p>
+        </div>
+
+        <div class="settings-section">
+          <h2>${t('settings.language')}</h2>
+          <select class="lang-select" id="lang-select">
+            <option value="en" ${lang === 'en' ? 'selected' : ''}>English</option>
+            <option value="de" ${lang === 'de' ? 'selected' : ''}>Deutsch</option>
+          </select>
+        </div>
+
         ${updateSection}
       </div>`;
   }
