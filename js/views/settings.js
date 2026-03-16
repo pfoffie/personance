@@ -37,12 +37,16 @@ const SettingsView = (() => {
       else hourRowPM.push(btn);
     }
 
-    const updateSection = updateAvailable ? `
+    const updateSection = `
         <div class="settings-section">
-          <h2>${t('settings.updateTitle')}</h2>
-          <p>${t('settings.updateDescription')}</p>
-          <button class="primary-btn" id="apply-update-btn">${t('settings.updateNow')}</button>
-        </div>` : '';
+          <h2>${updateAvailable ? t('settings.updateTitle') : t('settings.updatesTitle')}</h2>
+          <p>${updateAvailable ? t('settings.updateDescription') : t('settings.updateCheckDescription')}</p>
+          <div>
+            <button class="primary-btn" id="check-update-btn">${t('settings.updateCheck')}</button>
+            ${updateAvailable ? `<button class="primary-btn" id="apply-update-btn">${t('settings.updateNow')}</button>` : ''}
+          </div>
+          ${!updateAvailable ? `<p class="hint-text">${t('settings.updateStatusCurrent')}</p>` : ''}
+        </div>`;
 
     return `
       <div class="header">
@@ -119,7 +123,7 @@ const SettingsView = (() => {
       </div>`;
   }
 
-  function bind(el, { settings, notificationState = {}, onSave, onBack, onApplyUpdate, onToggleNotifications, onInstall }) {
+  function bind(el, { settings, notificationState = {}, onSave, onBack, onApplyUpdate, onToggleNotifications, onInstall, onCheckUpdate }) {
     const controller = new AbortController();
     const { signal } = controller;
     const t = I18n.t.bind(I18n);
@@ -205,6 +209,11 @@ const SettingsView = (() => {
     const installBtn = el.querySelector('#install-pwa-btn');
     if (installBtn && typeof onInstall === 'function') {
       installBtn.addEventListener('click', () => onInstall(), { signal });
+    }
+
+    const checkUpdateBtn = el.querySelector('#check-update-btn');
+    if (checkUpdateBtn && typeof onCheckUpdate === 'function') {
+      checkUpdateBtn.addEventListener('click', () => onCheckUpdate(), { signal });
     }
 
     const applyUpdateBtn = el.querySelector('#apply-update-btn');

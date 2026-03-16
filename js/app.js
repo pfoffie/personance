@@ -23,6 +23,8 @@ const App = (() => {
   let _updateAvailable = false;
   let _waitingSW = null;
   let _pendingSWVersion = null;
+  let _swRegistration = null;
+  let _swListenersBound = false;
   let _installPrompt = null;
   let _installAvailable = false;
   let _notificationState = { permission: 'default', pushSupported: false, enabled: false, subscription: null };
@@ -136,6 +138,7 @@ const App = (() => {
       onInstall: () => _promptInstall(),
       onSave: (data, langChanged) => _saveSettings(data, langChanged),
       onApplyUpdate: () => _applyUpdate(),
+      onCheckUpdate: () => _checkForUpdates(),
       onBack: () => _showList(),
     });
   }
@@ -320,45 +323,81 @@ const App = (() => {
 
   function _registerSW() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then((registration) => {
-        const handleWaitingWorker = async (worker) => {
-          _waitingSW = worker;
-          const waitingVersion = await _getWorkerVersion(worker);
-          const installedVersion = localStorage.getItem(VERSION_STORAGE_KEY) || APP_VERSION;
-          _pendingSWVersion = waitingVersion;
-          _updateAvailable = waitingVersion
-            ? _compareVersions(waitingVersion, installedVersion) > 0
-            : true;
-          if (_updateAvailable && _root && _root.querySelector('.settings')) {
-            _showSettings();
-          }
-        };
-
-        if (registration.waiting) {
-          handleWaitingWorker(registration.waiting);
-        }
-
-        registration.addEventListener('updatefound', () => {
-          const worker = registration.installing;
-          if (!worker) return;
-          worker.addEventListener('statechange', () => {
-            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-              handleWaitingWorker(worker);
-            }
-          });
-        });
-
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (_pendingSWVersion) _trackInstalledVersion(_pendingSWVersion);
-          window.location.reload();
-        }, { once: true });
-      }).catch(() => {});
+      navigator.serviceWorker.register('sw.js')
+        .then((registration) => {
+          _attachSWRegistration(registration);
+        })
+        .catch(() => {});
     }
+  }
+
+  function _attachSWRegistration(registration) {
+    if (!registration || _swListenersBound) return;
+    _swRegistration = registration;
+    _swListenersBound = true;
+
+    const handleWaitingWorker = async (worker) => {
+      _waitingSW = worker;
+      const waitingVersion = await _getWorkerVersion(worker);
+      const installedVersion = localStorage.getItem(VERSION_STORAGE_KEY) || APP_VERSION;
+      _pendingSWVersion = waitingVersion;
+      _updateAvailable = waitingVersion
+        ? _compareVersions(waitingVersion, installedVersion) > 0
+        : true;
+      if (_updateAvailable && _root && _root.querySelector('.settings')) {
+        _showSettings();
+      }
+    };
+
+    if (registration.waiting) {
+      handleWaitingWorker(registration.waiting);
+    }
+
+    registration.addEventListener('updatefound', () => {
+      const worker = registration.installing;
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          handleWaitingWorker(worker);
+        }
+      });
+    });
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (_pendingSWVersion) _trackInstalledVersion(_pendingSWVersion);
+      window.location.reload();
+    }, { once: true });
+  }
+
+  async function _ensureSWRegistration() {
+    if (_swRegistration) return _swRegistration;
+    if (!('serviceWorker' in navigator)) return null;
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        _attachSWRegistration(registration);
+        return registration;
+      }
+    } catch (e) {
+      return null;
+    }
+    return null;
   }
 
   function _applyUpdate() {
     if (_waitingSW) {
       _waitingSW.postMessage({ type: 'SKIP_WAITING' });
+    }
+  }
+
+  async function _checkForUpdates() {
+    const registration = await _ensureSWRegistration();
+    if (registration && typeof registration.update === 'function') {
+      try {
+        await registration.update();
+      } catch (e) {
+        // no-op: update failures are silent by design
+      }
     }
   }
 
