@@ -1,0 +1,25 @@
+{
+  "name": "Personance",
+  "short_name": "Personance",
+  "description": "Stay in touch with what matters.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#2a3042",
+  "theme_color": "#2a3042",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icons/icon_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "app": {
+    "name": "Personance",
+    "tagline": "Stay in touch with what matters."
+  },
+  "contacts": {
+    "title": "Reminders",
+    "empty": "Nothing here yet. Tap + to add a person, thing, or activity you want to keep up with.",
+    "addNew": "Add Reminder",
+    "due": "Due",
+    "dueNow": "Reach out!",
+    "dueIn": "≈ {date}",
+    "release": "Done — Reschedule",
+    "released": "Rescheduled!",
+    "daysUnit": "Days",
+    "name": "Name",
+    "namePlaceholder": "Person, thing, or activity",
+    "distance": "Distance",
+    "uncertainty": "Uncertainty",
+    "uncertaintyFormat": "{percent}% / ±{days} Days",
+    "plusMinusDays": "±{days} days",
+    "deleteContact": "Delete",
+    "deleteConfirm": "Delete \"{name}\"? This cannot be undone.",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "settings": {
+    "title": "Settings",
+    "availableDays": "Available Days",
+    "availableDaysDescription": "Choose the weekdays on which you'd like to receive reminders.",
+    "availableHours": "Available Hours",
+    "availableHoursDescription": "Choose the hours during which you'd like to receive reminders.",
+    "language": "Language",
+    "surprise": "Less surprise mode",
+    "surpriseDescription": "Show the target date (distance + ±5 days). Tap the date on a card to reveal the exact reminder date.",
+    "updateTitle": "App update available",
+    "updateDescription": "A newer version is ready to install.",
+    "updateNow": "Update now",
+    "notifications": "Notifications",
+    "notificationsEnable": "Enable notifications",
+    "notificationsDescription": "Get notified when it's time to follow up on something.",
+    "days": {
+      "mon": "Mo",
+      "tue": "Tu",
+      "wed": "We",
+      "thu": "Th",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "Su"
+    }
+  },
+  "intro": {
+    "title": "Welcome to Personance",
+    "subtitle": "Stay in touch with what matters.",
+    "what": "What is Personance?",
+    "whatText": "Personance is a gentle reminder system for the people, things, and activities you care about. Life gets busy — Personance makes sure nothing important fades away.",
+    "how": "How does it work?",
+    "howText": "Add anything you want to keep up with — a friend, a hobby, a habit. Set a distance (how many days between reminders) and an uncertainty (a bit of randomness so it feels natural, not robotic). Personance picks the right moment to nudge you.",
+    "privacy": "Your data stays yours",
+    "privacyText": "Everything is stored locally on your device. No accounts, no servers, no tracking.",
+    "getStarted": "Get Started"
+  },
+  "general": {
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "loading": "Loading…"
+  }
+}

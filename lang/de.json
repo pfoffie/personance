@@ -1,0 +1,71 @@
+{
+  "app": {
+    "name": "Personance",
+    "tagline": "Bleib in Kontakt mit dem, was dir wichtig ist."
+  },
+  "contacts": {
+    "title": "Erinnerungen",
+    "empty": "Noch nichts hier. Tippe auf +, um eine Person, Sache oder Aktivität hinzuzufügen, an die du denken möchtest.",
+    "addNew": "Erinnerung hinzufügen",
+    "due": "Fällig",
+    "dueNow": "Melde dich!",
+    "dueIn": "≈ {date}",
+    "release": "Erledigt — Neu planen",
+    "released": "Neu geplant!",
+    "daysUnit": "Tage",
+    "name": "Name",
+    "namePlaceholder": "Person, Sache oder Aktivität",
+    "distance": "Entfernung",
+    "uncertainty": "Unsicherheit",
+    "uncertaintyFormat": "{percent}% / ±{days} Tage",
+    "plusMinusDays": "±{days} Tage",
+    "deleteContact": "Löschen",
+    "deleteConfirm": "„{name} löschen? Das kann nicht rückgängig gemacht werden.",
+    "save": "Speichern",
+    "cancel": "Abbrechen"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "availableDays": "Verfügbare Tage",
+    "availableDaysDescription": "Wähle die Wochentage aus, an denen du Erinnerungen erhalten möchtest.",
+    "availableHours": "Verfügbare Stunden",
+    "availableHoursDescription": "Wähle die Stunden aus, zu denen du Erinnerungen erhalten möchtest.",
+    "language": "Sprache",
+    "surprise": "Weniger-Überraschungsmodus",
+    "surpriseDescription": "Zeigt das Zieldatum (Abstand + ±5 Tage). Tippe auf das Datum einer Karte, um das genaue Erinnerungsdatum aufzudecken.",
+    "updateTitle": "App-Update verfügbar",
+    "updateDescription": "Eine neuere Version ist zur Installation bereit.",
+    "updateNow": "Jetzt aktualisieren",
+    "notifications": "Benachrichtigungen",
+    "notificationsEnable": "Benachrichtigungen aktivieren",
+    "notificationsDescription": "Erhalte eine Benachrichtigung, wenn es Zeit ist, dich um etwas zu kümmern.",
+    "days": {
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "So"
+    }
+  },
+  "intro": {
+    "title": "Willkommen bei Personance",
+    "subtitle": "Bleib in Kontakt mit dem, was dir wichtig ist.",
+    "what": "Was ist Personance?",
+    "whatText": "Personance ist ein sanftes Erinnerungssystem für die Menschen, Dinge und Aktivitäten, die dir am Herzen liegen. Das Leben ist hektisch — Personance sorgt dafür, dass nichts Wichtiges in Vergessenheit gerät.",
+    "how": "Wie funktioniert es?",
+    "howText": "Füge alles hinzu, womit du in Kontakt bleiben möchtest — eine Freundin, ein Hobby, eine Gewohnheit. Lege eine Entfernung fest (wie viele Tage zwischen Erinnerungen) und eine Unsicherheit (etwas Zufall, damit es sich natürlich anfühlt). Personance wählt den richtigen Moment, um dich anzustupsen.",
+    "privacy": "Deine Daten bleiben bei dir",
+    "privacyText": "Alles wird lokal auf deinem Gerät gespeichert. Keine Konten, keine Server, kein Tracking.",
+    "getStarted": "Los geht's"
+  },
+  "general": {
+    "back": "Zurück",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "confirm": "Bestätigen",
+    "loading": "Laden…"
+  }
+}

@@ -1,0 +1,335 @@
+/**
+ * Personance — Main App Controller
+ * Handles routing between views, data flow, and lifecycle.
+ */
+import Store from './store.js';
+import I18n from './i18n.js';
+import Scheduler from './scheduler.js';
+import Notifications from './notifications.js';
+import ContactListView from './views/contactList.js';
+import ContactEditorView from './views/contactEditor.js';
+import SettingsView from './views/settings.js';
+import IntroView from './views/intro.js';
+
+const APP_VERSION = '1.0.0';
+const VERSION_STORAGE_KEY = 'personance-installed-version';
+
+const App = (() => {
+  let _root = null;
+  let _settings = null;
+  let _contacts = [];
+  let _checkInterval = null;
+  let _unbindView = null;
+  let _updateAvailable = false;
+  let _waitingSW = null;
+  let _pendingSWVersion = null;
+
+  async function init() {
+    _root = document.getElementById('app');
+
+    // Open database
+    await Store.open();
+
+    // Load settings & determine language
+    _settings = await Store.getSettings();
+    const hadValidSavedLanguage = ['en', 'de'].includes(_settings.language);
+    const browserLang = (navigator.language || 'en').toLowerCase().substring(0, 2);
+    const supportedLangs = ['en', 'de'];
+    const preferredBrowserLang = supportedLangs.includes(browserLang) ? browserLang : 'en';
+    const lang = supportedLangs.includes(_settings.language) ? _settings.language : preferredBrowserLang;
+    _settings.language = lang;
+    await I18n.load(lang);
+    if (!hadValidSavedLanguage) {
+      await Store.saveSettings(_settings);
+    }
+
+    // Init notifications
+    Notifications.init();
+    Notifications.setEnabled(_settings.notificationsEnabled);
+
+    // Load contacts
+    _contacts = await Store.getAllContacts();
+
+    // Show intro on first launch, otherwise main list
+    const hasSeenIntro = localStorage.getItem('personance-intro-seen');
+    if (!hasSeenIntro) {
+      _showIntro(false);
+    } else {
+      _showList();
+    }
+
+    // Periodically check for due contacts (every 60s)
+    _checkInterval = setInterval(_checkDueContacts, 60000);
+    _checkDueContacts();
+
+    // Register service worker
+    _trackInstalledVersion(APP_VERSION);
+    _registerSW();
+  }
+
+  // --- Views ---
+
+  function _showIntro(showBack) {
+    _clearViewBindings();
+    _root.innerHTML = IntroView.render({ showBack });
+    _unbindView = IntroView.bind(_root, {
+      onStart: () => {
+        localStorage.setItem('personance-intro-seen', '1');
+        _showList();
+      },
+      onBack: () => _showList(),
+    });
+  }
+
+  function _showList() {
+    _clearViewBindings();
+    _root.innerHTML = ContactListView.render(_contacts, _settings);
+    _root.classList.add('view-enter');
+    _unbindView = ContactListView.bind(_root, {
+      onEdit: (id) => _showEditor(id),
+      onRelease: (id) => _releaseContact(id),
+      onAdd: () => _showEditor(null),
+      onSettings: () => _showSettings(),
+      onInfo: () => _showIntro(true),
+    });
+  }
+
+  async function _showEditor(id) {
+    _clearViewBindings();
+    const contact = id ? await Store.getContact(id) : null;
+    _root.innerHTML = ContactEditorView.render(contact, _settings);
+    _unbindView = ContactEditorView.bind(_root, {
+      contact,
+      settings: _settings,
+      onSave: (data) => _saveContact(id, data),
+      onDelete: (cid, name) => _confirmDelete(cid, name),
+      onBack: () => _showList(),
+    });
+  }
+
+  async function _showSettings() {
+    _clearViewBindings();
+    _root.innerHTML = SettingsView.render(_settings, { updateAvailable: _updateAvailable });
+    _unbindView = SettingsView.bind(_root, {
+      settings: _settings,
+      onSave: (data, langChanged) => _saveSettings(data, langChanged),
+      onApplyUpdate: () => _applyUpdate(),
+      onBack: () => _showList(),
+    });
+  }
+
+  // --- Actions ---
+
+  async function _saveContact(existingId, data) {
+    let contact;
+    if (existingId) {
+      contact = await Store.getContact(existingId);
+      contact.name = data.name;
+      contact.distance = data.distance;
+      contact.uncertainty = data.uncertainty;
+      // Recompute reminder only if distance/uncertainty changed
+      contact.reminderDate = Scheduler.computeNextReminder(
+        data.distance, data.uncertainty,
+        _settings.availableDays, _settings.availableHours
+      ).toISOString();
+    } else {
+      contact = {
+        id: _generateId(),
+        name: data.name,
+        distance: data.distance,
+        uncertainty: data.uncertainty,
+        reminderDate: Scheduler.computeNextReminder(
+          data.distance, data.uncertainty,
+          _settings.availableDays, _settings.availableHours
+        ).toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+    }
+    contact.updatedAt = new Date().toISOString();
+    await Store.saveContact(contact);
+    _contacts = await Store.getAllContacts();
+    _showList();
+  }
+
+  async function _releaseContact(id) {
+    const contact = await Store.getContact(id);
+    if (!contact) return;
+    // Reschedule
+    contact.reminderDate = Scheduler.computeNextReminder(
+      contact.distance, contact.uncertainty,
+      _settings.availableDays, _settings.availableHours
+    ).toISOString();
+    contact.updatedAt = new Date().toISOString();
+    await Store.saveContact(contact);
+    _contacts = await Store.getAllContacts();
+    _showList();
+    Notifications.notify(
+      I18n.t('contacts.released'),
+      Scheduler.formatApproxDate(contact.reminderDate, I18n.currentLang())
+    );
+  }
+
+  async function _deleteContact(id) {
+    await Store.deleteContact(id);
+    _contacts = await Store.getAllContacts();
+    _showList();
+  }
+
+  function _confirmDelete(id, name) {
+    const t = I18n.t.bind(I18n);
+    const overlay = document.createElement('div');
+    overlay.className = 'dialog-overlay';
+    overlay.innerHTML = `
+      <div class="dialog-box">
+        <p>${t('contacts.deleteConfirm', { name: _esc(name) })}</p>
+        <div class="dialog-actions">
+          <button class="dialog-cancel">${t('general.cancel')}</button>
+          <button class="dialog-confirm">${t('general.delete')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('.dialog-cancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('.dialog-confirm').addEventListener('click', () => {
+      overlay.remove();
+      _deleteContact(id);
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+  }
+
+  async function _saveSettings(data, langChanged) {
+    _settings = { ..._settings, ...data };
+    await Store.saveSettings(_settings);
+    if (langChanged) {
+      await I18n.load(_settings.language);
+      _showSettings(); // Re-render with new language
+    }
+  }
+
+  // --- Background checks ---
+
+  function _checkDueContacts() {
+    const now = new Date();
+    _contacts.forEach(c => {
+      if (c.reminderDate && new Date(c.reminderDate) <= now && !c._notified) {
+        Notifications.notify(
+          I18n.t('contacts.dueNow'),
+          c.name
+        );
+        c._notified = true;
+      }
+    });
+    // Re-render list view if it's currently showing
+    if (_root.querySelector('.contact-list') || _root.querySelector('.empty-state')) {
+      _showList();
+    }
+  }
+
+  // --- Utilities ---
+
+  function _generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+  }
+
+  function _esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function _registerSW() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then((registration) => {
+        const handleWaitingWorker = async (worker) => {
+          _waitingSW = worker;
+          const waitingVersion = await _getWorkerVersion(worker);
+          const installedVersion = localStorage.getItem(VERSION_STORAGE_KEY) || APP_VERSION;
+          _pendingSWVersion = waitingVersion;
+          _updateAvailable = waitingVersion
+            ? _compareVersions(waitingVersion, installedVersion) > 0
+            : true;
+          if (_updateAvailable && _root && _root.querySelector('.settings')) {
+            _showSettings();
+          }
+        };
+
+        if (registration.waiting) {
+          handleWaitingWorker(registration.waiting);
+        }
+
+        registration.addEventListener('updatefound', () => {
+          const worker = registration.installing;
+          if (!worker) return;
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              handleWaitingWorker(worker);
+            }
+          });
+        });
+
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (_pendingSWVersion) _trackInstalledVersion(_pendingSWVersion);
+          window.location.reload();
+        }, { once: true });
+      }).catch(() => {});
+    }
+  }
+
+  function _applyUpdate() {
+    if (_waitingSW) {
+      _waitingSW.postMessage({ type: 'SKIP_WAITING' });
+    }
+  }
+
+  function _clearViewBindings() {
+    if (typeof _unbindView === 'function') {
+      _unbindView();
+      _unbindView = null;
+    }
+  }
+
+  function _trackInstalledVersion(version) {
+    const current = localStorage.getItem(VERSION_STORAGE_KEY);
+    if (!current || _compareVersions(version, current) > 0) {
+      localStorage.setItem(VERSION_STORAGE_KEY, version);
+    }
+  }
+
+  function _compareVersions(left, right) {
+    const leftParts = String(left).split('.').map((n) => parseInt(n, 10) || 0);
+    const rightParts = String(right).split('.').map((n) => parseInt(n, 10) || 0);
+    const len = Math.max(leftParts.length, rightParts.length);
+    for (let i = 0; i < len; i++) {
+      const a = leftParts[i] || 0;
+      const b = rightParts[i] || 0;
+      if (a > b) return 1;
+      if (a < b) return -1;
+    }
+    return 0;
+  }
+
+  function _getWorkerVersion(worker) {
+    return new Promise((resolve) => {
+      if (!worker) {
+        resolve(null);
+        return;
+      }
+      const channel = new MessageChannel();
+      const timeout = setTimeout(() => resolve(null), 1000);
+      channel.port1.onmessage = (event) => {
+        clearTimeout(timeout);
+        resolve(event?.data?.version || null);
+      };
+      worker.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+    });
+  }
+
+  return { init };
+})();
+
+// Boot
+document.addEventListener('DOMContentLoaded', () => App.init());
+
+export default App;
