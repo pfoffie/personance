@@ -48,7 +48,7 @@ html {
 
 body {
   display: block;
-  margin-top: env(safe-area-inset-top, 50px);
+  margin-top: 40px;
 }
 
 /* --- App shell --- */
