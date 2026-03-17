@@ -195,7 +195,7 @@ const Notifications = (() => {
     return {
       permission: _permission,
       enabled: _enabled,
-      pushSupported: isPushSupported(),
+      pushSupported: isSupported(),
       subscription: getSubscription(),
     };
   }

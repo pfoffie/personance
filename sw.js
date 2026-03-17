@@ -2,6 +2,18 @@
  * Personance — Service Worker
  * Caches all app assets for full offline support.
  */
+
+// Import OneSignal's service worker so it can receive push notifications.
+// Wrapped in try/catch so a network failure during install does not break the SW.
+try {
+  importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+} catch (e) {
+  // OneSignal SDK unavailable (offline or not configured). Push notifications
+  // will not be delivered when the browser is closed, but in-app reminders
+  // still work. The SDK will be re-imported when the SW next installs.
+  console.warn('[SW] OneSignal SDK import failed:', e.message);
+}
+
 const APP_VERSION = '1.2.4fmla';
 const CACHE_NAME = `personance-v${APP_VERSION}`;
 const ASSETS = [
@@ -13,7 +25,7 @@ const ASSETS = [
   './js/store.js',
   './js/scheduler.js',
   './js/notifications.js',
-  './js/ntfy.js',
+  './js/push.js',
   './js/views/contactList.js',
   './js/views/contactEditor.js',
   './js/views/settings.js',
@@ -23,6 +35,7 @@ const ASSETS = [
   './assets/icons/icon_192.png',
   './assets/icons/icon_512.png',
   './assets/icons/icon_180.png',
+  './push-config.js',
 ];
 
 // Install — cache all assets
@@ -73,33 +86,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notification handler — supports both ntfy.sh payload format and plain format
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-  const data = event.data.json();
-
-  // ntfy.sh wraps messages as: { event: "message", subscription_id: "…", message: { title, message, … } }
-  let title = 'Personance';
-  let body = '';
-  if (data.event === 'message' && data.message) {
-    title = data.message.title || 'Personance';
-    body = data.message.message || '';
-  } else {
-    title = data.title || 'Personance';
-    body = data.body || '';
-  }
-
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: './assets/icons/icon_192.png',
-      badge: './assets/icons/icon_192.png',
-      data,
-    })
-  );
-});
-
-// Notification click handler
+// Notification click handler — focus or open the app window
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
