@@ -3,12 +3,12 @@
  * Caches all app assets for full offline support.
  */
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 const CACHE_NAME = `personance-v${APP_VERSION}`;
 const ASSETS = [
   './',
   './index.html',
-  './css/styles.css?v=1.3.0',
+  './css/styles.css?v=1.3.1',
   './js/app.js',
   './js/i18n.js',
   './js/store.js',
@@ -17,10 +17,13 @@ const ASSETS = [
   './js/push.js',
   './js/views/contactList.js',
   './js/views/contactEditor.js',
+  './js/views/intro.js',
   './js/views/settings.js',
   './lang/en.json',
   './lang/de.json',
+  './lang/es.json',
   './manifest.json',
+  './assets/share.jpg',
   './assets/icons/icon_192.png',
   './assets/icons/icon_512.png',
   './assets/icons/icon_180.png',
@@ -31,7 +34,10 @@ const ASSETS = [
 // Install — cache all assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      const requests = ASSETS.map((url) => new Request(url, { cache: 'reload' }));
+      return cache.addAll(requests);
+    })
   );
   self.skipWaiting();
 });

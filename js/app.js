@@ -12,7 +12,7 @@ import ContactEditorView from './views/contactEditor.js';
 import SettingsView from './views/settings.js';
 import IntroView from './views/intro.js'
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 const VERSION_STORAGE_KEY = 'personance-installed-version';
 
 const App = (() => {
@@ -409,7 +409,7 @@ const App = (() => {
 
   function _registerSW() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js')
+      navigator.serviceWorker.register(`sw.js?v=${APP_VERSION}`, { updateViaCache: 'none' })
         .then((registration) => {
           _attachSWRegistration(registration);
         })
