@@ -6,12 +6,13 @@ import Store from './store.js';
 import I18n from './i18n.js';
 import Scheduler from './scheduler.js';
 import Notifications from './notifications.js';
+import NtfyProvider from './ntfy.js';
 import ContactListView from './views/contactList.js';
 import ContactEditorView from './views/contactEditor.js';
 import SettingsView from './views/settings.js';
 import IntroView from './views/intro.js';
 
-const APP_VERSION = '1.1.5';
+const APP_VERSION = '1.2.0';
 const VERSION_STORAGE_KEY = 'personance-installed-version';
 
 const App = (() => {
@@ -125,7 +126,10 @@ const App = (() => {
 
   async function _showSettings() {
     _clearViewBindings();
-    const notificationState = Notifications.getSupportState();
+    const notificationState = {
+      ...Notifications.getSupportState(),
+      ntfyTopic: NtfyProvider.getTopic(),
+    };
     _root.innerHTML = SettingsView.render(_settings, {
       updateAvailable: _updateAvailable,
       notificationState,
@@ -173,6 +177,8 @@ const App = (() => {
     contact.updatedAt = new Date().toISOString();
     await Store.saveContact(contact);
     _contacts = await Store.getAllContacts();
+    // Schedule a real push notification via ntfy.sh for the new reminder date
+    _schedulePushForContact(contact);
     _showList();
   }
 
@@ -188,6 +194,8 @@ const App = (() => {
     await Store.saveContact(contact);
     _contacts = await Store.getAllContacts();
     _showList();
+    // Schedule a real push notification for the rescheduled reminder
+    _schedulePushForContact(contact);
     if (_settings.notificationsEnabled) {
       Notifications.notify(
         I18n.t('contacts.released'),
@@ -240,32 +248,67 @@ const App = (() => {
     if (!_settings.notificationsEnabled) {
       return;
     }
-    const restored = await Notifications.restorePush();
+    // Fetch VAPID key from ntfy.sh so we can restore the push subscription
+    const vapidKey = await NtfyProvider.fetchVapidKey();
+    const restored = await Notifications.restorePush({ applicationServerKey: vapidKey || undefined });
     _notificationState = { ..._notificationState, ...restored };
     if (!restored.enabled || restored.permission !== 'granted') {
       _settings.notificationsEnabled = false;
       await Store.saveSettings(_settings);
       Notifications.setEnabled(false);
+      return;
+    }
+    // Re-register subscription with ntfy.sh on each app start (endpoint may have changed)
+    const topic = NtfyProvider.getTopic();
+    if (topic && restored.subscription) {
+      NtfyProvider.registerSubscription(restored.subscription, topic); // fire and forget
     }
   }
 
   async function _toggleNotifications(enable) {
     if (!enable) {
+      // Unregister from ntfy.sh before clearing the browser subscription
+      const sub = Notifications.getSubscription();
+      if (sub) {
+        NtfyProvider.unregisterSubscription(sub); // fire and forget
+      }
       Notifications.setEnabled(false);
       _settings.notificationsEnabled = false;
       await Store.saveSettings(_settings);
       await Notifications.disablePush();
+      NtfyProvider.clearTopic();
       _notificationState = Notifications.getSupportState();
       return { ..._notificationState };
     }
-    const result = await Notifications.enablePush();
+
+    // Fetch ntfy.sh VAPID public key required to subscribe
+    const vapidKey = await NtfyProvider.fetchVapidKey();
+    if (!vapidKey) {
+      return { enabled: false, permission: Notifications.getPermission(), subscription: null };
+    }
+
+    const result = await Notifications.enablePush({ applicationServerKey: vapidKey });
+
+    if (result.enabled && result.subscription) {
+      // Register this browser's push subscription with ntfy.sh for our topic.
+      // If registration fails, disable push so the UI reflects the real state.
+      const topic = NtfyProvider.getOrCreateTopic();
+      const registered = await NtfyProvider.registerSubscription(result.subscription, topic);
+      if (!registered) {
+        // ntfy.sh unreachable or rejected — roll back
+        await Notifications.disablePush();
+        NtfyProvider.clearTopic();
+        return { enabled: false, permission: result.permission, subscription: null };
+      }
+    }
+
     Notifications.setEnabled(result.enabled);
     _settings.notificationsEnabled = result.enabled;
     if (!result.enabled) {
       _settings.notificationsEnabled = false;
     }
     await Store.saveSettings(_settings);
-    _notificationState = Notifications.getSupportState();
+    _notificationState = { ...Notifications.getSupportState(), ntfyTopic: NtfyProvider.getTopic() };
     return { ..._notificationState, permission: result.permission };
   }
 
@@ -289,6 +332,25 @@ const App = (() => {
   }
 
   // --- Background checks ---
+
+  /**
+   * Schedule a real push notification via ntfy.sh for a contact's reminder date.
+   * Only fires if push notifications are enabled and we have a ntfy.sh topic.
+   * This is a fire-and-forget call; errors are silently ignored.
+   */
+  function _schedulePushForContact(contact) {
+    if (!_settings.notificationsEnabled) return;
+    const topic = NtfyProvider.getTopic();
+    if (!topic || !contact.reminderDate) return;
+    const deliverAt = new Date(contact.reminderDate);
+    if (deliverAt.getTime() <= Date.now()) return; // Already in the past — skip
+    NtfyProvider.scheduleNotification(
+      topic,
+      I18n.t('contacts.dueNow'),
+      contact.name,
+      deliverAt
+    );
+  }
 
   function _checkDueContacts() {
     const now = new Date();

@@ -2,7 +2,7 @@
  * Personance — Service Worker
  * Caches all app assets for full offline support.
  */
-const APP_VERSION = '1.1.5';
+const APP_VERSION = '1.2.0';
 const CACHE_NAME = `personance-v${APP_VERSION}`;
 const ASSETS = [
   './',
@@ -13,6 +13,7 @@ const ASSETS = [
   './js/store.js',
   './js/scheduler.js',
   './js/notifications.js',
+  './js/ntfy.js',
   './js/views/contactList.js',
   './js/views/contactEditor.js',
   './js/views/settings.js',
@@ -72,16 +73,28 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notification handler (future)
+// Push notification handler — supports both ntfy.sh payload format and plain format
 self.addEventListener('push', (event) => {
   if (!event.data) return;
   const data = event.data.json();
+
+  // ntfy.sh wraps messages as: { event: "message", subscription_id: "…", message: { title, message, … } }
+  let title = 'Personance';
+  let body = '';
+  if (data.event === 'message' && data.message) {
+    title = data.message.title || 'Personance';
+    body = data.message.message || '';
+  } else {
+    title = data.title || 'Personance';
+    body = data.body || '';
+  }
+
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Personance', {
-      body: data.body || '',
+    self.registration.showNotification(title, {
+      body,
       icon: './assets/icons/icon_192.png',
       badge: './assets/icons/icon_192.png',
-      data: data,
+      data,
     })
   );
 });
