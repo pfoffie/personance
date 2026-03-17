@@ -65,6 +65,12 @@ body {
   padding-bottom: calc(var(--spacing) + env(safe-area-inset-bottom, 0px));
 }
 
+@media (display-mode: standalone) {
+  #app {
+    padding-top: calc(var(--spacing) + env(safe-area-inset-top, 0px) + 12px);
+  }
+}
+
 /* --- Header --- */
 .header {
   display: flex;
