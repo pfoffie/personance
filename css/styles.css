@@ -48,7 +48,6 @@ html {
 
 body {
   display: block;
-  margin-top: 40px;
 }
 
 /* --- App shell --- */
@@ -60,7 +59,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: var(--spacing);
-  padding-top: calc(var(--spacing) + env(safe-area-inset-top, 0px));
+  padding-top: calc(var(--spacing) + 20px);
   padding-bottom: calc(var(--spacing) + env(safe-area-inset-bottom, 0px));
 }
 
