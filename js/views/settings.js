@@ -12,15 +12,9 @@ const SettingsView = (() => {
       permission: notificationState.permission || 'default',
       pushSupported: notificationState.pushSupported !== false,
       enabled: !!settings.notificationsEnabled,
-      subscription: notificationState.subscription,
-      ntfyTopic: notificationState.ntfyTopic || null,
+      pushConfigured: !!notificationState.pushConfigured,
     };
     const notificationStatus = _notificationStatusText(notifState, t);
-    const subscriptionHint = notifState.ntfyTopic
-      ? t('settings.notificationsNtfyHint', { topic: notifState.ntfyTopic })
-      : (notifState.subscription && notifState.subscription.endpoint
-        ? _formatEndpoint(notifState.subscription.endpoint)
-        : null);
 
     // Day buttons — week starts Monday, JS getDay() 0=Sun
     const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // Mon–Sun
@@ -104,7 +98,6 @@ const SettingsView = (() => {
 				<span class="toggle-knob"></span>
 			</span>
           </label>
-          ${subscriptionHint ? `<div class="hint-text mono">${subscriptionHint}</div>` : ''}
         </div>
 
         <div class="settings-section pwa-section">
@@ -204,19 +197,9 @@ const SettingsView = (() => {
           permission: result.permission || notificationState.permission,
           pushSupported: typeof result.pushSupported === 'boolean' ? result.pushSupported : notificationState.pushSupported,
           enabled: current.notificationsEnabled,
-          subscription: result.subscription || notificationState.subscription,
-          ntfyTopic: result.ntfyTopic || notificationState.ntfyTopic || null,
+          pushConfigured: typeof result.pushConfigured === 'boolean' ? result.pushConfigured : notificationState.pushConfigured,
         };
         notificationsStatus.textContent = _notificationStatusText(state, t);
-        // Update the ntfy topic hint if visible
-        const hint = el.querySelector('.hint-text.mono');
-        if (hint) {
-          hint.textContent = state.ntfyTopic
-            ? t('settings.notificationsNtfyHint', { topic: state.ntfyTopic })
-            : (state.subscription && state.subscription.endpoint
-              ? _formatEndpoint(state.subscription.endpoint)
-              : '');
-        }
       }, { signal });
     }
 
@@ -257,15 +240,13 @@ const SettingsView = (() => {
   function _notificationStatusText(state, t) {
     if (!state.pushSupported) return t('settings.notificationsUnsupported');
     if (state.permission === 'denied') return t('settings.notificationsDenied');
-    if (state.enabled && state.permission === 'granted') return t('settings.notificationsOn');
+    if (state.enabled && state.permission === 'granted') {
+      return state.pushConfigured
+        ? t('settings.notificationsOnPush')
+        : t('settings.notificationsOn');
+    }
     if (state.permission === 'granted') return t('settings.notificationsOff');
     return t('settings.notificationsPrompt');
-  }
-
-  function _formatEndpoint(endpoint) {
-    if (!endpoint) return '';
-    if (endpoint.length <= 44) return endpoint;
-    return `${endpoint.slice(0, 26)}…${endpoint.slice(-12)}`;
   }
 
   return { render, bind };
