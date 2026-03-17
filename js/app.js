@@ -153,6 +153,11 @@ const App = (() => {
     let contact;
     if (existingId) {
       contact = await Store.getContact(existingId);
+      // Cancel any previously scheduled push notification for this contact
+      if (contact.pushNotificationId) {
+        PushProvider.cancelNotification(contact.pushNotificationId);
+        contact.pushNotificationId = null;
+      }
       contact.name = data.name;
       contact.distance = data.distance;
       contact.uncertainty = data.uncertainty;
@@ -177,14 +182,24 @@ const App = (() => {
     contact.updatedAt = new Date().toISOString();
     await Store.saveContact(contact);
     _contacts = await Store.getAllContacts();
-    // Schedule a push notification for the new reminder date (requires push-config.js credentials)
-    _schedulePushForContact(contact);
     _showList();
+    // Schedule a push notification for the new reminder date and persist the ID
+    _schedulePushForContact(contact).then(async (pushId) => {
+      if (pushId) {
+        contact.pushNotificationId = pushId;
+        await Store.saveContact(contact);
+      }
+    });
   }
 
   async function _releaseContact(id) {
     const contact = await Store.getContact(id);
     if (!contact) return;
+    // Cancel any previously scheduled push notification for this contact
+    if (contact.pushNotificationId) {
+      PushProvider.cancelNotification(contact.pushNotificationId);
+      contact.pushNotificationId = null;
+    }
     // Reschedule
     contact.reminderDate = Scheduler.computeNextReminder(
       contact.distance, contact.uncertainty,
@@ -194,8 +209,13 @@ const App = (() => {
     await Store.saveContact(contact);
     _contacts = await Store.getAllContacts();
     _showList();
-    // Schedule a push notification for the rescheduled reminder
-    _schedulePushForContact(contact);
+    // Schedule a push notification for the rescheduled reminder and persist the ID
+    _schedulePushForContact(contact).then(async (pushId) => {
+      if (pushId) {
+        contact.pushNotificationId = pushId;
+        await Store.saveContact(contact);
+      }
+    });
     if (_settings.notificationsEnabled) {
       Notifications.notify(
         I18n.t('contacts.released'),
@@ -205,6 +225,10 @@ const App = (() => {
   }
 
   async function _deleteContact(id) {
+    const contact = await Store.getContact(id);
+    if (contact && contact.pushNotificationId) {
+      PushProvider.cancelNotification(contact.pushNotificationId);
+    }
     await Store.deleteContact(id);
     _contacts = await Store.getAllContacts();
     _showList();
@@ -337,15 +361,15 @@ const App = (() => {
   /**
    * Schedule a push notification for a contact's reminder date via OneSignal.
    * Requires push-config.js to have both appId and restApiKey set.
-   * This is a fire-and-forget call; errors are silently ignored.
+   * @returns {Promise<string|null>}  OneSignal notification id or null
    */
-  function _schedulePushForContact(contact) {
-    if (!_settings.notificationsEnabled) return;
-    if (!PushProvider.isConfigured()) return;
-    if (!contact.reminderDate) return;
+  async function _schedulePushForContact(contact) {
+    if (!_settings.notificationsEnabled) return null;
+    if (!PushProvider.isConfigured()) return null;
+    if (!contact.reminderDate) return null;
     const deliverAt = new Date(contact.reminderDate);
-    if (deliverAt.getTime() <= Date.now()) return;
-    PushProvider.scheduleNotification(
+    if (deliverAt.getTime() <= Date.now()) return null;
+    return PushProvider.scheduleNotification(
       I18n.t('contacts.dueNow'),
       contact.name,
       deliverAt

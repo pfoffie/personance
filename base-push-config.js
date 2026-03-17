@@ -22,7 +22,7 @@ window.PUSH_CONFIG = {
     appId: 'YOUR-ONESIGNAL-APP-ID',
     safari_web_id: 'web.onesignal.auto.example-0000-0000-0000-000000000000',
     notifyButton: {
-      enable: true,
+      enable: false,
     },
   },
   restApiKey: 'YOUR-ONESIGNAL-REST-API-KEY',

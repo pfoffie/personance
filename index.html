@@ -26,7 +26,7 @@
       await OneSignal.init({
         appId: cfg.appId,
         safari_web_id: cfg.safari_web_id || cfg.safariWebId || '',
-        notifyButton: cfg.notifyButton || { enable: true },
+        notifyButton: { enable: false },
       });
     });
   </script>
