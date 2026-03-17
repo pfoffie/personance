@@ -13,11 +13,14 @@ const SettingsView = (() => {
       pushSupported: notificationState.pushSupported !== false,
       enabled: !!settings.notificationsEnabled,
       subscription: notificationState.subscription,
+      ntfyTopic: notificationState.ntfyTopic || null,
     };
     const notificationStatus = _notificationStatusText(notifState, t);
-    const subscriptionHint = notifState.subscription && notifState.subscription.endpoint
-      ? _formatEndpoint(notifState.subscription.endpoint)
-      : null;
+    const subscriptionHint = notifState.ntfyTopic
+      ? t('settings.notificationsNtfyHint', { topic: notifState.ntfyTopic })
+      : (notifState.subscription && notifState.subscription.endpoint
+        ? _formatEndpoint(notifState.subscription.endpoint)
+        : null);
 
     // Day buttons — week starts Monday, JS getDay() 0=Sun
     const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // Mon–Sun
@@ -202,8 +205,18 @@ const SettingsView = (() => {
           pushSupported: typeof result.pushSupported === 'boolean' ? result.pushSupported : notificationState.pushSupported,
           enabled: current.notificationsEnabled,
           subscription: result.subscription || notificationState.subscription,
+          ntfyTopic: result.ntfyTopic || notificationState.ntfyTopic || null,
         };
         notificationsStatus.textContent = _notificationStatusText(state, t);
+        // Update the ntfy topic hint if visible
+        const hint = el.querySelector('.hint-text.mono');
+        if (hint) {
+          hint.textContent = state.ntfyTopic
+            ? t('settings.notificationsNtfyHint', { topic: state.ntfyTopic })
+            : (state.subscription && state.subscription.endpoint
+              ? _formatEndpoint(state.subscription.endpoint)
+              : '');
+        }
       }, { signal });
     }
 
