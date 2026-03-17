@@ -173,10 +173,8 @@ const App = (() => {
     contact.updatedAt = new Date().toISOString();
     await Store.saveContact(contact);
     _contacts = await Store.getAllContacts();
-    _showList();
-  }
-
-  async function _releaseContact(id) {
+    _syncRemindersWithServer().catch((e) => console.warn('[push] Reminder sync failed after save:', e));
+    _showList();(id) {
     const contact = await Store.getContact(id);
     if (!contact) return;
     // Reschedule
@@ -187,6 +185,7 @@ const App = (() => {
     contact.updatedAt = new Date().toISOString();
     await Store.saveContact(contact);
     _contacts = await Store.getAllContacts();
+    _syncRemindersWithServer().catch((e) => console.warn('[push] Reminder sync failed after release:', e));
     _showList();
     if (_settings.notificationsEnabled) {
       Notifications.notify(
@@ -199,6 +198,7 @@ const App = (() => {
   async function _deleteContact(id) {
     await Store.deleteContact(id);
     _contacts = await Store.getAllContacts();
+    _syncRemindersWithServer().catch((e) => console.warn('[push] Reminder sync failed after delete:', e));
     _showList();
   }
 
@@ -227,11 +227,16 @@ const App = (() => {
   }
 
   async function _saveSettings(data, langChanged) {
+    const prevServerUrl = _settings.pushServerUrl;
     _settings = { ..._settings, ...data };
     await Store.saveSettings(_settings);
     if (langChanged) {
       await I18n.load(_settings.language);
       _showSettings(); // Re-render with new language
+    }
+    // If push server URL changed and push is enabled, re-register and sync
+    if (_settings.pushServerUrl !== prevServerUrl && _settings.notificationsEnabled) {
+      _syncRemindersWithServer().catch((e) => console.warn('[push] Reminder sync failed after server URL change:', e));
     }
   }
 
@@ -246,11 +251,25 @@ const App = (() => {
       _settings.notificationsEnabled = false;
       await Store.saveSettings(_settings);
       Notifications.setEnabled(false);
+      return;
+    }
+    // Re-sync reminder schedule with push server on startup
+    if (_settings.pushServerUrl && restored.subscription && restored.subscription.endpoint) {
+      _syncRemindersWithServer(restored.subscription.endpoint).catch((e) => console.warn('[push] Bootstrap sync failed:', e));
     }
   }
 
   async function _toggleNotifications(enable) {
     if (!enable) {
+      // Unregister from push server before unsubscribing
+      if (_settings.pushServerUrl) {
+        const sub = Notifications.getSubscription();
+        const endpoint = sub && (sub.endpoint || (sub.toJSON && sub.toJSON().endpoint));
+        if (endpoint) {
+          await Notifications.unregisterFromServer(_settings.pushServerUrl, endpoint)
+            .catch((e) => console.warn('[push] Failed to unregister from server:', e));
+        }
+      }
       Notifications.setEnabled(false);
       _settings.notificationsEnabled = false;
       await Store.saveSettings(_settings);
@@ -258,13 +277,28 @@ const App = (() => {
       _notificationState = Notifications.getSupportState();
       return { ..._notificationState };
     }
-    const result = await Notifications.enablePush();
+
+    // Fetch VAPID public key from push server if configured
+    let applicationServerKey;
+    if (_settings.pushServerUrl) {
+      applicationServerKey = await Notifications.fetchVapidKey(_settings.pushServerUrl);
+    }
+
+    const result = await Notifications.enablePush({ applicationServerKey });
     Notifications.setEnabled(result.enabled);
     _settings.notificationsEnabled = result.enabled;
     if (!result.enabled) {
       _settings.notificationsEnabled = false;
     }
     await Store.saveSettings(_settings);
+
+    // Register subscription with push server and sync reminders
+    if (result.enabled && result.subscription && _settings.pushServerUrl) {
+      const reminders = _contactsToReminders(_contacts);
+      await Notifications.registerWithServer(_settings.pushServerUrl, result.subscription, reminders)
+        .catch((e) => console.warn('[push] Failed to register with server:', e));
+    }
+
     _notificationState = Notifications.getSupportState();
     return { ..._notificationState, permission: result.permission };
   }
@@ -286,6 +320,30 @@ const App = (() => {
 
   function _isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  }
+
+  // --- Push server helpers ---
+
+  /**
+   * Map contacts to the reminder payload the push server expects.
+   */
+  function _contactsToReminders(contacts) {
+    return contacts
+      .filter((c) => c.reminderDate)
+      .map((c) => ({ id: c.id, name: c.name, reminderDate: c.reminderDate }));
+  }
+
+  /**
+   * Sync reminder schedule to the push server (if configured and push is enabled).
+   * @param {string} [endpoint] - override endpoint (defaults to stored subscription)
+   */
+  async function _syncRemindersWithServer(endpoint) {
+    if (!_settings.pushServerUrl || !_settings.notificationsEnabled) return;
+    const sub = Notifications.getSubscription();
+    const ep = endpoint || (sub && (sub.endpoint || (sub.toJSON && sub.toJSON().endpoint) || null));
+    if (!ep) return;
+    const reminders = _contactsToReminders(_contacts);
+    await Notifications.syncRemindersWithServer(_settings.pushServerUrl, ep, reminders);
   }
 
   // --- Background checks ---

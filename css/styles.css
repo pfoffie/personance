@@ -712,6 +712,39 @@ input[type="range"] {
   margin-top: 4px;
 }
 
+/* --- Push server URL field --- */
+.push-server-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+.push-server-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.push-server-input {
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  width: 100%;
+}
+.push-server-input:focus {
+  border-color: var(--border-focus);
+}
+.push-server-input::placeholder {
+  color: var(--text-dim);
+}
+.push-server-field .hint-text {
+  text-align: left;
+}
+
 /* --- Intro page --- */
 .intro {
   display: flex;

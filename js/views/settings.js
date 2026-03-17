@@ -102,6 +102,19 @@ const SettingsView = (() => {
 			</span>
           </label>
           ${subscriptionHint ? `<div class="hint-text mono">${subscriptionHint}</div>` : ''}
+          <div class="push-server-field">
+            <label class="push-server-label" for="push-server-url">${t('settings.pushServerUrl')}</label>
+            <input
+              type="url"
+              id="push-server-url"
+              class="push-server-input"
+              placeholder="${t('settings.pushServerUrlPlaceholder')}"
+              value="${_escAttr(settings.pushServerUrl || '')}"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <small class="hint-text">${t('settings.pushServerUrlDescription')}</small>
+          </div>
         </div>
 
         <div class="settings-section pwa-section">
@@ -135,6 +148,7 @@ const SettingsView = (() => {
       language: settings.language,
       surpriseMode: !!settings.surpriseMode,
       notificationsEnabled: !!settings.notificationsEnabled,
+      pushServerUrl: settings.pushServerUrl || '',
     };
 
     // Day toggle
@@ -207,6 +221,22 @@ const SettingsView = (() => {
       }, { signal });
     }
 
+    // Push server URL
+    const pushServerInput = el.querySelector('#push-server-url');
+    if (pushServerInput) {
+      let _pushServerTimer = null;
+      pushServerInput.addEventListener('input', () => {
+        current.pushServerUrl = pushServerInput.value.trim();
+        clearTimeout(_pushServerTimer);
+        _pushServerTimer = setTimeout(() => _autoSave(), 600);
+      }, { signal });
+      pushServerInput.addEventListener('blur', () => {
+        clearTimeout(_pushServerTimer);
+        current.pushServerUrl = pushServerInput.value.trim();
+        _autoSave();
+      }, { signal });
+    }
+
     const installBtn = el.querySelector('#install-pwa-btn');
     if (installBtn && typeof onInstall === 'function') {
       installBtn.addEventListener('click', () => onInstall(), { signal });
@@ -253,6 +283,14 @@ const SettingsView = (() => {
     if (!endpoint) return '';
     if (endpoint.length <= 44) return endpoint;
     return `${endpoint.slice(0, 26)}…${endpoint.slice(-12)}`;
+  }
+
+  function _escAttr(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   return { render, bind };

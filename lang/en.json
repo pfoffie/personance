@@ -49,6 +49,9 @@
     "notificationsDenied": "Notifications are blocked in your browser settings.",
     "notificationsUnsupported": "This device does not support web push.",
     "notificationsWorking": "Updating notification settings…",
+    "pushServerUrl": "Push server URL",
+    "pushServerUrlPlaceholder": "https://push.yourserver.com",
+    "pushServerUrlDescription": "Optional: enter the URL of your Personance push server to receive notifications even when the app is closed.",
     "days": {
       "mon": "Mo",
       "tue": "Tu",

@@ -49,6 +49,9 @@
     "notificationsDenied": "Benachrichtigungen sind in den Browsereinstellungen blockiert.",
     "notificationsUnsupported": "Dieses Gerät unterstützt kein Web-Push.",
     "notificationsWorking": "Benachrichtigungseinstellungen werden aktualisiert…",
+    "pushServerUrl": "Push-Server-URL",
+    "pushServerUrlPlaceholder": "https://push.deinserver.de",
+    "pushServerUrlDescription": "Optional: Gib die URL deines Personance-Push-Servers ein, um Benachrichtigungen auch dann zu erhalten, wenn die App geschlossen ist.",
     "days": {
       "mon": "Mo",
       "tue": "Di",

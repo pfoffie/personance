@@ -211,6 +211,89 @@ const Notifications = (() => {
     return outputArray;
   }
 
+  // ---------------------------------------------------------------------------
+  // Push server integration
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fetch the VAPID public key from the push server.
+   * @param {string} serverUrl - Base URL of the push server
+   * @returns {Promise<string|null>}
+   */
+  async function fetchVapidKey(serverUrl) {
+    if (!serverUrl) return null;
+    try {
+      const res = await fetch(`${serverUrl.replace(/\/$/, '')}/api/vapid-public-key`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.publicKey || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * Register a push subscription with the server and optionally sync reminders.
+   * @param {string} serverUrl
+   * @param {object} subscription - JSON subscription (from PushSubscription.toJSON())
+   * @param {Array<{id,name,reminderDate}>} [reminders]
+   * @returns {Promise<boolean>}
+   */
+  async function registerWithServer(serverUrl, subscription, reminders) {
+    if (!serverUrl || !subscription) return false;
+    try {
+      const res = await fetch(`${serverUrl.replace(/\/$/, '')}/api/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription, reminders: reminders || [] }),
+      });
+      return res.ok;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /**
+   * Remove a push subscription from the server.
+   * @param {string} serverUrl
+   * @param {string} endpoint
+   * @returns {Promise<boolean>}
+   */
+  async function unregisterFromServer(serverUrl, endpoint) {
+    if (!serverUrl || !endpoint) return false;
+    try {
+      const res = await fetch(`${serverUrl.replace(/\/$/, '')}/api/unsubscribe`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint }),
+      });
+      return res.ok;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /**
+   * Sync the reminder list for an existing subscription.
+   * @param {string} serverUrl
+   * @param {string} endpoint
+   * @param {Array<{id,name,reminderDate}>} reminders
+   * @returns {Promise<boolean>}
+   */
+  async function syncRemindersWithServer(serverUrl, endpoint, reminders) {
+    if (!serverUrl || !endpoint) return false;
+    try {
+      const res = await fetch(`${serverUrl.replace(/\/$/, '')}/api/sync`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint, reminders }),
+      });
+      return res.ok;
+    } catch (_) {
+      return false;
+    }
+  }
+
   return {
     init,
     requestPermission,
@@ -226,6 +309,10 @@ const Notifications = (() => {
     disablePush,
     getSubscription,
     getSupportState,
+    fetchVapidKey,
+    registerWithServer,
+    unregisterFromServer,
+    syncRemindersWithServer,
   };
 })();
 

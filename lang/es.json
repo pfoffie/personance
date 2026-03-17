@@ -49,6 +49,9 @@
     "notificationsDenied": "Las notificaciones están bloqueadas en los ajustes de tu navegador.",
     "notificationsUnsupported": "Este dispositivo no admite notificaciones push.",
     "notificationsWorking": "Actualizando ajustes de notificaciones…",
+    "pushServerUrl": "URL del servidor push",
+    "pushServerUrlPlaceholder": "https://push.tuservidor.com",
+    "pushServerUrlDescription": "Opcional: introduce la URL de tu servidor push de Personance para recibir notificaciones incluso cuando la app está cerrada.",
     "days": {
       "mon": "Lu",
       "tue": "Ma",
