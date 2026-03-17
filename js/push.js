@@ -173,7 +173,34 @@ const PushProvider = (() => {
     }
   }
 
-  return { isConfigured, initSDK, subscribe, unsubscribe, isSubscribed, scheduleNotification };
+  /**
+   * Cancel a previously scheduled push notification via the OneSignal REST API.
+   *
+   * Requires restApiKey in push-config.js.  Without it this is a no-op.
+   *
+   * @param {string} notificationId  OneSignal notification id returned by scheduleNotification
+   * @returns {Promise<void>}
+   */
+  async function cancelNotification(notificationId) {
+    if (!notificationId) return;
+    const cfg = _cfg();
+    if (!cfg.restApiKey) return;
+    try {
+      await fetch(
+        `https://onesignal.com/api/v1/notifications/${encodeURIComponent(notificationId)}?app_id=${encodeURIComponent(_appId())}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Basic ${cfg.restApiKey}`,
+          },
+        }
+      );
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  return { isConfigured, initSDK, subscribe, unsubscribe, isSubscribed, scheduleNotification, cancelNotification };
 })();
 
 export default PushProvider;
