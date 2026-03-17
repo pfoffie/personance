@@ -9,8 +9,8 @@
 //   4. Copy your credentials from Settings → Keys & IDs
 //   5. Paste them below
 //
-// Without appId:    push is disabled; notifications still work while the browser is open.
-// With appId only:  the browser can subscribe, but scheduled delivery needs restApiKey.
+// Without oneSignal.appId: push is disabled; notifications still work while the browser is open.
+// With oneSignal.appId only: the browser can subscribe, but scheduled delivery needs restApiKey.
 // With both:        full push — reminders arrive even when the browser is closed.
 //
 // Security note: restApiKey is used to call the OneSignal REST API directly from the
@@ -18,6 +18,12 @@
 // have access to this file. Do not publish this file publicly with your key filled in.
 
 window.PUSH_CONFIG = {
-  appId:      '',   // OneSignal App ID   (Settings → Keys & IDs → OneSignal App ID)
-  restApiKey: '',   // REST API Key       (Settings → Keys & IDs → REST API Key)
+  oneSignal: {
+    appId: 'YOUR-ONESIGNAL-APP-ID',
+    safari_web_id: 'web.onesignal.auto.example-0000-0000-0000-000000000000',
+    notifyButton: {
+      enable: true,
+    },
+  },
+  restApiKey: 'YOUR-ONESIGNAL-REST-API-KEY',
 };

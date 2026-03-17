@@ -3,23 +3,12 @@
  * Caches all app assets for full offline support.
  */
 
-// Import OneSignal's service worker so it can receive push notifications.
-// Wrapped in try/catch so a network failure during install does not break the SW.
-try {
-  importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
-} catch (e) {
-  // OneSignal SDK unavailable (offline or not configured). Push notifications
-  // will not be delivered when the browser is closed, but in-app reminders
-  // still work. The SDK will be re-imported when the SW next installs.
-  console.warn('[SW] OneSignal SDK import failed:', e.message);
-}
-
-const APP_VERSION = '1.2.4fmla';
+const APP_VERSION = '1.3.0';
 const CACHE_NAME = `personance-v${APP_VERSION}`;
 const ASSETS = [
   './',
   './index.html',
-  './css/styles.css',
+  './css/styles.css?v=1.3.0',
   './js/app.js',
   './js/i18n.js',
   './js/store.js',
@@ -36,6 +25,7 @@ const ASSETS = [
   './assets/icons/icon_512.png',
   './assets/icons/icon_180.png',
   './push-config.js',
+  './OneSignalSDKWorker.js',
 ];
 
 // Install — cache all assets

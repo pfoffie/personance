@@ -21,9 +21,23 @@ const PushProvider = (() => {
 
   // ─── Config helpers ──────────────────────────────────────────────────────────
 
+  function _cfg() {
+    return window.PUSH_CONFIG || {};
+  }
+
+  function _oneSignalCfg() {
+    const cfg = _cfg();
+    return cfg.oneSignal || cfg;
+  }
+
+  function _appId() {
+    const cfg = _oneSignalCfg();
+    return cfg.appId || '';
+  }
+
   /** Returns true when an App ID has been set in push-config.js. */
   function isConfigured() {
-    return !!(window.PUSH_CONFIG && window.PUSH_CONFIG.appId);
+    return !!_appId();
   }
 
   /** Convenience accessor for the OneSignal global. */
@@ -43,22 +57,24 @@ const PushProvider = (() => {
     const os = _os();
     if (!os) return false;
     if (_initialized) return true;
-    try {
-      await os.init({
-        appId: window.PUSH_CONFIG.appId,
-        // Reuse the app's own service worker so we keep a single SW scope.
-        serviceWorkerPath: 'sw.js',
-        serviceWorkerParam: { scope: './' },
-        // Don't show OneSignal's built-in floating subscribe button.
-        notifyButton: { enable: false },
-        // Don't send an automatic welcome notification on first subscribe.
-        welcomeNotification: { disable: true },
-      });
-      _initialized = true;
-      return true;
-    } catch (_) {
-      return false;
-    }
+    const ready = await new Promise((resolve) => {
+      let checks = 0;
+      const tick = () => {
+        if (os.User && os.User.PushSubscription) {
+          resolve(true);
+          return;
+        }
+        checks += 1;
+        if (checks > 30) {
+          resolve(false);
+          return;
+        }
+        setTimeout(tick, 100);
+      };
+      tick();
+    });
+    _initialized = ready;
+    return ready;
   }
 
   // ─── Subscription management ─────────────────────────────────────────────────
@@ -120,7 +136,7 @@ const PushProvider = (() => {
    */
   async function scheduleNotification(title, body, deliverAt) {
     if (!_initialized || !isConfigured()) return null;
-    const cfg = window.PUSH_CONFIG;
+    const cfg = _cfg();
     if (!cfg.restApiKey) return null;
     const os = _os();
     if (!os) return null;
@@ -129,7 +145,7 @@ const PushProvider = (() => {
     if (!subscriptionId) return null;
 
     const payload = {
-      app_id: cfg.appId,
+      app_id: _appId(),
       include_subscription_ids: [subscriptionId],
       headings: { en: title },
       contents: { en: body },

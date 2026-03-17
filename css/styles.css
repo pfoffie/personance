@@ -59,7 +59,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: var(--spacing);
-  padding-top: calc(var(--spacing) + 20px);
+  padding-top: calc(var(--spacing) + env(safe-area-inset-top,0));
   padding-bottom: calc(var(--spacing) + env(safe-area-inset-bottom, 0px));
 }
 
