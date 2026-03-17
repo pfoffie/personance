@@ -66,6 +66,9 @@ body {
 }
 
 @media (display-mode: standalone) {
+	body{
+		padding-top: env(safe-area-inset-top); /* Handle notch on mobile */
+	}
   #app {
     padding-top: calc(var(--spacing) + env(safe-area-inset-top, 0px) + 12px);
   }
