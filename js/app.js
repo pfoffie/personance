@@ -10,9 +10,9 @@ import NtfyProvider from './ntfy.js';
 import ContactListView from './views/contactList.js';
 import ContactEditorView from './views/contactEditor.js';
 import SettingsView from './views/settings.js';
-import IntroView from './views/intro.js';
+import IntroView from './views/intro.js'
 
-const APP_VERSION = '1.2.4a';
+const APP_VERSION = '1.2.4b';
 const VERSION_STORAGE_KEY = 'personance-installed-version';
 
 const App = (() => {
