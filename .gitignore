@@ -1,2 +1,12 @@
+# User & hunt data — managed at runtime, not versioned
+/data/users.json
+/data/hunts/*.json
+
+# OS / editor files
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# git pull file
 update.php
