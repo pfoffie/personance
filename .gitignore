@@ -10,3 +10,6 @@ Thumbs.db
 
 # git pull file
 update.php
+
+# config
+push-config.js
