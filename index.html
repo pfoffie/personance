@@ -15,21 +15,7 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon_192.png" />
   <link rel="apple-touch-icon" href="assets/icons/icon_180.png" />
-  <!-- Push notification credentials — edit push-config.js to enable OneSignal -->
-  <script src="push-config.js" defer></script>
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
-      const cfg = (window.PUSH_CONFIG && (window.PUSH_CONFIG.oneSignal || window.PUSH_CONFIG)) || {};
-      if (!cfg.appId) return;
-      await OneSignal.init({
-        appId: cfg.appId,
-        safari_web_id: cfg.safari_web_id || cfg.safariWebId || '',
-        notifyButton: { enable: false },
-      });
-    });
-  </script>
+
 </head>
 <body>
   <div id="app"></div>

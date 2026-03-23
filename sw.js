@@ -23,12 +23,10 @@ const ASSETS = [
   './lang/de.json',
   './lang/es.json',
   './manifest.json',
-  './assets/share.jpg',
   './assets/icons/icon_192.png',
   './assets/icons/icon_512.png',
   './assets/icons/icon_180.png',
-  './push-config.js',
-  './OneSignalSDKWorker.js',
+  './assets/share.jpg',
 ];
 
 // Install — cache all assets
