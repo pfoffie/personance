@@ -153,9 +153,9 @@ const App = (() => {
     let contact;
     if (existingId) {
       contact = await Store.getContact(existingId);
-      // Cancel any previously scheduled push notification for this contact
+      // Remove any previously scheduled push notification for this contact.
       if (contact.pushNotificationId) {
-        PushProvider.cancelNotification(contact.pushNotificationId);
+        PushProvider.removeNotification(contact.pushNotificationId);
         contact.pushNotificationId = null;
       }
       contact.name = data.name;
@@ -195,9 +195,9 @@ const App = (() => {
   async function _releaseContact(id) {
     const contact = await Store.getContact(id);
     if (!contact) return;
-    // Cancel any previously scheduled push notification for this contact
+    // Remove any previously scheduled push notification for this contact.
     if (contact.pushNotificationId) {
-      PushProvider.cancelNotification(contact.pushNotificationId);
+      PushProvider.removeNotification(contact.pushNotificationId);
       contact.pushNotificationId = null;
     }
     // Reschedule
@@ -227,7 +227,7 @@ const App = (() => {
   async function _deleteContact(id) {
     const contact = await Store.getContact(id);
     if (contact && contact.pushNotificationId) {
-      PushProvider.cancelNotification(contact.pushNotificationId);
+      PushProvider.removeNotification(contact.pushNotificationId);
     }
     await Store.deleteContact(id);
     _contacts = await Store.getAllContacts();
@@ -268,10 +268,8 @@ const App = (() => {
   }
 
   async function _bootstrapNotifications() {
-    // Always initialise the SDK at startup (safe no-op when not configured).
-    if (PushProvider.isConfigured()) {
-      await PushProvider.initSDK();
-    }
+    // Load the custom push provider module (no-op when custom/push.js is absent).
+    await PushProvider.init();
     _notificationState = {
       ...Notifications.getSupportState(),
       pushConfigured: PushProvider.isConfigured(),
@@ -283,21 +281,15 @@ const App = (() => {
       Notifications.setEnabled(false);
       return;
     }
-    // Restore push subscription on startup if configured and not already opted-in.
-    // Fire-and-forget: bootstrap should not block app startup; if subscribe fails
-    // the user can re-enable from Settings on next open.
-    if (PushProvider.isConfigured() && !PushProvider.isSubscribed()) {
-      PushProvider.subscribe(); // intentional fire-and-forget
+    // Re-register with the push provider on startup if configured.
+    // Fire-and-forget: scheduleNotification() will await this before using the userId.
+    if (PushProvider.isConfigured()) {
+      PushProvider.registerNotifications(); // intentional fire-and-forget
     }
   }
 
   async function _toggleNotifications(enable) {
     if (!enable) {
-      if (PushProvider.isConfigured()) {
-        // Fire-and-forget: the UI already reflects disabled state; any lingering
-        // push subscription will be cleaned up in the background.
-        PushProvider.unsubscribe(); // intentional fire-and-forget
-      }
       Notifications.setEnabled(false);
       _settings.notificationsEnabled = false;
       await Store.saveSettings(_settings);
@@ -322,9 +314,9 @@ const App = (() => {
       };
     }
 
-    // Subscribe to push if configured.
+    // Register with the custom push provider if configured.
     if (PushProvider.isConfigured()) {
-      await PushProvider.subscribe();
+      await PushProvider.registerNotifications();
     }
 
     Notifications.setEnabled(true);
@@ -359,9 +351,8 @@ const App = (() => {
   // --- Background checks ---
 
   /**
-   * Schedule a push notification for a contact's reminder date via OneSignal.
-   * Requires push-config.js to have both appId and restApiKey set.
-   * @returns {Promise<string|null>}  OneSignal notification id or null
+   * Schedule a push notification for a contact's reminder date via the custom provider.
+   * @returns {Promise<string|null>}  message ID or null
    */
   async function _schedulePushForContact(contact) {
     if (!_settings.notificationsEnabled) return null;
@@ -370,9 +361,8 @@ const App = (() => {
     const deliverAt = new Date(contact.reminderDate);
     if (deliverAt.getTime() <= Date.now()) return null;
     return PushProvider.scheduleNotification(
-      I18n.t('contacts.dueNow'),
-      contact.name,
-      deliverAt
+      deliverAt.getTime(),
+      contact.name
     );
   }
 
