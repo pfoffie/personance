@@ -64,9 +64,14 @@ const Store = (() => {
     return _req(_tx('contacts', 'readwrite').delete(id));
   }
 
+  function clearContacts() {
+    return _req(_tx('contacts', 'readwrite').clear());
+  }
+
   // --- Settings ---
 
   const DEFAULT_SETTINGS = {
+    userId: null,
     language: null,
     availableDays: [1, 2, 3, 4, 5], // 0=Sun, 1=Mon ... 6=Sat
     availableHours: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
@@ -84,7 +89,7 @@ const Store = (() => {
     return _req(_tx('settings', 'readwrite').put({ key: 'global', value: settings }));
   }
 
-  return { open, getAllContacts, getContact, saveContact, deleteContact, getSettings, saveSettings, DEFAULT_SETTINGS };
+  return { open, getAllContacts, getContact, saveContact, deleteContact, clearContacts, getSettings, saveSettings, DEFAULT_SETTINGS };
 })();
 
 export default Store;
