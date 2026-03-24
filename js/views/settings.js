@@ -35,12 +35,12 @@ const SettingsView = (() => {
     }
 
     const updateSection = `
-        <div class="settings-section">
+        <div class="settings-section settings-block">
           <h2>${updateAvailable ? t('settings.updateTitle') : t('settings.updatesTitle')}</h2>
           <p>${updateAvailable ? t('settings.updateDescription') : t('settings.updateCheckDescription')}</p>
           <div>
-            <button class="primary-btn" id="clear-cache-btn">${t('settings.updateCheck')}</button>
-            ${updateAvailable ? `<button class="primary-btn" id="apply-update-btn">${t('settings.updateNow')}</button>` : ''}
+            <button class="primary-btn" id="clear-cache-btn" title="${t('settings.updateCheck')}">${t('settings.updateCheck')}</button>
+            ${updateAvailable ? `<button class="primary-btn" id="apply-update-btn" title="${t('settings.updateNow')}">${t('settings.updateNow')}</button>` : ''}
           </div>
         </div>`;
 
@@ -54,7 +54,7 @@ const SettingsView = (() => {
       <div class="settings view-enter">
         <h1 class="text-center">${t('settings.title')}</h1>
 
-        <div class="settings-section">
+        <div class="settings-section settings-block">
           <h2>${t('settings.availableDays')}</h2>
           <p>${t('settings.availableDaysDescription')}</p>
           <div class="day-picker">
@@ -62,7 +62,7 @@ const SettingsView = (() => {
           </div>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section settings-block">
           <h2>${t('settings.availableHours')}</h2>
           <p>${t('settings.availableHoursDescription')}</p>
           <div class="hour-grid">
@@ -71,7 +71,7 @@ const SettingsView = (() => {
           </div>
         </div>
 
-         <div class="settings-section">
+         <div class="settings-section settings-block">
            <label class="toggle-label">
              <span class="toggle-text">
                <strong>${t('settings.surprise')}</strong>
@@ -83,9 +83,9 @@ const SettingsView = (() => {
           </label>
         </div>
 
-		<hr/>
+        <hr/>
 
-        <div class="settings-section">
+        <div class="settings-section settings-block">
           <h2>${t('settings.notifications')}</h2>
           <p>${t('settings.notificationsDescription')}</p>
           <label class="toggle-label">
@@ -99,14 +99,14 @@ const SettingsView = (() => {
           </label>
         </div>
 
-        <div class="settings-section pwa-section">
+        <div class="settings-section settings-block pwa-section">
           <h2>${t('settings.pwaTitle')}</h2>
           <p>${t('settings.pwaDescription')}</p>
-          <button class="primary-btn" id="install-pwa-btn">${installAvailable ? t('settings.pwaInstallButton') : t('settings.pwaInstallHelp')}</button>
+          <button class="primary-btn" id="install-pwa-btn" title="${installAvailable ? t('settings.pwaInstallButton') : t('settings.pwaInstallHelp')}">${installAvailable ? t('settings.pwaInstallButton') : t('settings.pwaInstallHelp')}</button>
           <p class="hint-text">${t('settings.pwaManualText')}</p>
         </div>
 
-        <div class="settings-section">
+        <div class="settings-section settings-block">
           <h2>${t('settings.language')}</h2>
           <select class="lang-select" id="lang-select">
             <option value="en" ${lang === 'en' ? 'selected' : ''}>English</option>
