@@ -3,7 +3,7 @@
  * Caches all app assets for full offline support.
  */
 
-const APP_VERSION = '1.3.3';
+const APP_VERSION = '1.4.0';
 const CACHE_NAME = `personance-v${APP_VERSION}`;
 const ASSETS = [
   './',
