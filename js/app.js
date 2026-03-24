@@ -142,7 +142,7 @@ const App = (() => {
       onInstall: () => _promptInstall(),
       onSave: (data, langChanged) => _saveSettings(data, langChanged),
       onApplyUpdate: () => _applyUpdate(),
-      onCheckUpdate: () => _checkForUpdates(),
+      onClearCache: () => _clearCacheAndReload(),
       onBack: () => _showList(),
     });
   }
@@ -466,15 +466,20 @@ const App = (() => {
     }
   }
 
-  async function _checkForUpdates() {
-    const registration = await _ensureSWRegistration();
-    if (registration && typeof registration.update === 'function') {
-      try {
-        await registration.update();
-      } catch (e) {
-        // no-op: update failures are silent by design
+  async function _clearCacheAndReload() {
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
       }
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) await registration.unregister();
+      }
+    } catch (e) {
+      // no-op: failures are silent by design
     }
+    window.location.reload();
   }
 
   function _clearViewBindings() {

@@ -39,10 +39,9 @@ const SettingsView = (() => {
           <h2>${updateAvailable ? t('settings.updateTitle') : t('settings.updatesTitle')}</h2>
           <p>${updateAvailable ? t('settings.updateDescription') : t('settings.updateCheckDescription')}</p>
           <div>
-            <button class="primary-btn" id="check-update-btn">${t('settings.updateCheck')}</button>
+            <button class="primary-btn" id="clear-cache-btn">${t('settings.updateCheck')}</button>
             ${updateAvailable ? `<button class="primary-btn" id="apply-update-btn">${t('settings.updateNow')}</button>` : ''}
           </div>
-          ${!updateAvailable ? `<p class="hint-text">${t('settings.updateStatusCurrent')}</p>` : ''}
         </div>`;
 
     return `
@@ -120,7 +119,7 @@ const SettingsView = (() => {
       </div>`;
   }
 
-  function bind(el, { settings, notificationState = {}, onSave, onBack, onApplyUpdate, onToggleNotifications, onInstall, onCheckUpdate }) {
+  function bind(el, { settings, notificationState = {}, onSave, onBack, onApplyUpdate, onToggleNotifications, onInstall, onClearCache }) {
     const controller = new AbortController();
     const { signal } = controller;
     const t = I18n.t.bind(I18n);
@@ -208,9 +207,9 @@ const SettingsView = (() => {
       installBtn.addEventListener('click', () => onInstall(), { signal });
     }
 
-    const checkUpdateBtn = el.querySelector('#check-update-btn');
-    if (checkUpdateBtn && typeof onCheckUpdate === 'function') {
-      checkUpdateBtn.addEventListener('click', () => onCheckUpdate(), { signal });
+    const clearCacheBtn = el.querySelector('#clear-cache-btn');
+    if (clearCacheBtn && typeof onClearCache === 'function') {
+      clearCacheBtn.addEventListener('click', () => onClearCache(), { signal });
     }
 
     const applyUpdateBtn = el.querySelector('#apply-update-btn');
