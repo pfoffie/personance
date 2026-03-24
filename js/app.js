@@ -12,7 +12,7 @@ import ContactEditorView from './views/contactEditor.js';
 import SettingsView from './views/settings.js';
 import IntroView from './views/intro.js'
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const VERSION_STORAGE_KEY = 'personance-installed-version';
 
 const App = (() => {
@@ -48,14 +48,18 @@ const App = (() => {
 
     // Load settings & determine language
     _settings = await Store.getSettings();
-    const hadValidSavedLanguage = ['en', 'de'].includes(_settings.language);
+    const hadValidSavedLanguage = ['en', 'de', 'es'].includes(_settings.language);
     const browserLang = (navigator.language || 'en').toLowerCase().substring(0, 2);
-    const supportedLangs = ['en', 'de'];
+    const supportedLangs = ['en', 'de', 'es'];
     const preferredBrowserLang = supportedLangs.includes(browserLang) ? browserLang : 'en';
     const lang = supportedLangs.includes(_settings.language) ? _settings.language : preferredBrowserLang;
+    const hadUserId = typeof _settings.userId === 'string' && _settings.userId.trim().length > 0;
+    if (!hadUserId) {
+      _settings.userId = _generateUserId();
+    }
     _settings.language = lang;
     await I18n.load(lang);
-    if (!hadValidSavedLanguage) {
+    if (!hadValidSavedLanguage || !hadUserId) {
       await Store.saveSettings(_settings);
     }
 
@@ -143,6 +147,8 @@ const App = (() => {
       onSave: (data, langChanged) => _saveSettings(data, langChanged),
       onApplyUpdate: () => _applyUpdate(),
       onClearCache: () => _clearCacheAndReload(),
+      onExportData: () => _exportData(),
+      onImportData: (file) => _importData(file),
       onBack: () => _showList(),
     });
   }
@@ -329,6 +335,54 @@ const App = (() => {
     return { ..._notificationState, permission: perm };
   }
 
+  async function _exportData() {
+    const payload = {
+      settings: _settings,
+      items: _contacts,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'personance.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    Notifications.notify(I18n.t('settings.exportSuccessTitle'), I18n.t('settings.exportSuccessText'));
+  }
+
+  async function _importData(file) {
+    try {
+      const rawText = await file.text();
+      const parsed = JSON.parse(rawText);
+      const importedItems = Array.isArray(parsed?.items) ? parsed.items : (Array.isArray(parsed?.contacts) ? parsed.contacts : null);
+      if (!importedItems || typeof parsed?.settings !== 'object' || parsed.settings === null) {
+        throw new Error('invalid import file');
+      }
+      const importedContacts = importedItems
+        .map((item) => _normalizeImportedContact(item))
+        .filter((item) => item !== null);
+      const importedSettings = _sanitizeImportedSettings(parsed.settings);
+      if (!importedSettings.userId) {
+        importedSettings.userId = _settings.userId || _generateUserId();
+      }
+      await Store.clearContacts();
+      for (const contact of importedContacts) {
+        await Store.saveContact(contact);
+      }
+      _settings = importedSettings;
+      await Store.saveSettings(_settings);
+      if (I18n.currentLang() !== _settings.language && ['en', 'de', 'es'].includes(_settings.language)) {
+        await I18n.load(_settings.language);
+      }
+      Notifications.setEnabled(!!_settings.notificationsEnabled);
+      _contacts = await Store.getAllContacts();
+      _showList();
+      Notifications.notify(I18n.t('settings.importSuccessTitle'), I18n.t('settings.importSuccessText'));
+    } catch (_) {
+      Notifications.notify(I18n.t('settings.importErrorTitle'), I18n.t('settings.importErrorText'));
+    }
+  }
+
   async function _promptInstall() {
     if (_isStandalone()) {
       Notifications.notify(I18n.t('settings.pwaInstalledTitle'), I18n.t('settings.pwaInstalledText'));
@@ -389,6 +443,69 @@ const App = (() => {
 
   function _generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+  }
+
+  function _generateUserId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return _generateId();
+  }
+
+  function _normalizeImportedContact(contact) {
+    if (!contact || typeof contact !== 'object') return null;
+    const name = typeof contact.name === 'string' ? contact.name.trim() : '';
+    if (!name) return null;
+    const distance = _clampInt(contact.distance, 1, 365, 90);
+    const uncertainty = _clampInt(contact.uncertainty, 0, 100, 50);
+    const reminderDate = _validIso(contact.reminderDate) || Scheduler.computeNextReminder(
+      distance, uncertainty, _settings.availableDays, _settings.availableHours
+    ).toISOString();
+    const nowIso = new Date().toISOString();
+    return {
+      id: typeof contact.id === 'string' && contact.id.trim() ? contact.id : _generateId(),
+      name,
+      distance,
+      uncertainty,
+      reminderDate,
+      createdAt: _validIso(contact.createdAt) || nowIso,
+      updatedAt: _validIso(contact.updatedAt) || nowIso,
+    };
+  }
+
+  function _sanitizeImportedSettings(settings) {
+    const next = { ...Store.DEFAULT_SETTINGS };
+    if (typeof settings.language === 'string' && ['en', 'de', 'es'].includes(settings.language)) {
+      next.language = settings.language;
+    }
+    if (Array.isArray(settings.availableDays)) {
+      const days = Array.from(new Set(settings.availableDays.map((d) => _clampInt(d, 0, 6, null)).filter((d) => d !== null)));
+      if (days.length > 0) next.availableDays = days;
+    }
+    if (Array.isArray(settings.availableHours)) {
+      const hours = Array.from(new Set(settings.availableHours.map((h) => _clampInt(h, 0, 23, null)).filter((h) => h !== null)));
+      if (hours.length > 0) next.availableHours = hours;
+    }
+    next.notificationsEnabled = !!settings.notificationsEnabled;
+    next.surpriseMode = !!settings.surpriseMode;
+    if (typeof settings.userId === 'string' && settings.userId.trim()) {
+      next.userId = settings.userId.trim();
+    }
+    return next;
+  }
+
+  function _clampInt(value, min, max, fallback) {
+    const num = Number.parseInt(value, 10);
+    if (Number.isNaN(num)) return fallback;
+    if (num < min || num > max) return fallback;
+    return num;
+  }
+
+  function _validIso(value) {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toISOString();
   }
 
   function _esc(str) {

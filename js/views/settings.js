@@ -115,11 +115,21 @@ const SettingsView = (() => {
           </select>
         </div>
 
+        <div class="settings-section settings-block">
+          <h2>${t('settings.dataTitle')}</h2>
+          <p>${t('settings.dataDescription')}</p>
+          <div>
+            <button class="primary-btn" id="export-data-btn">${t('settings.exportData')}</button>
+            <button class="primary-btn" id="import-data-btn">${t('settings.importData')}</button>
+            <input type="file" id="import-data-file" accept="application/json,.json" hidden />
+          </div>
+        </div>
+
         ${updateSection}
       </div>`;
   }
 
-  function bind(el, { settings, notificationState = {}, onSave, onBack, onApplyUpdate, onToggleNotifications, onInstall, onClearCache }) {
+  function bind(el, { settings, notificationState = {}, onSave, onBack, onApplyUpdate, onToggleNotifications, onInstall, onClearCache, onExportData, onImportData }) {
     const controller = new AbortController();
     const { signal } = controller;
     const t = I18n.t.bind(I18n);
@@ -215,6 +225,22 @@ const SettingsView = (() => {
     const applyUpdateBtn = el.querySelector('#apply-update-btn');
     if (applyUpdateBtn && typeof onApplyUpdate === 'function') {
       applyUpdateBtn.addEventListener('click', () => onApplyUpdate(), { signal });
+    }
+
+    const exportDataBtn = el.querySelector('#export-data-btn');
+    if (exportDataBtn && typeof onExportData === 'function') {
+      exportDataBtn.addEventListener('click', () => onExportData(), { signal });
+    }
+
+    const importDataBtn = el.querySelector('#import-data-btn');
+    const importDataFile = el.querySelector('#import-data-file');
+    if (importDataBtn && importDataFile && typeof onImportData === 'function') {
+      importDataBtn.addEventListener('click', () => importDataFile.click(), { signal });
+      importDataFile.addEventListener('change', () => {
+        const file = importDataFile.files && importDataFile.files[0];
+        if (file) onImportData(file);
+        importDataFile.value = '';
+      }, { signal });
     }
 
     // Back
