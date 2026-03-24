@@ -414,7 +414,7 @@ input[type="range"] {
 .settings {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 22px;
   flex: 1;
 }
 
@@ -422,6 +422,13 @@ input[type="range"] {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.settings-block {
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
 }
 
 .settings-section h2 {
@@ -469,7 +476,7 @@ input[type="range"] {
 .hour-grid {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .hour-row {
@@ -519,6 +526,13 @@ input[type="range"] {
 }
 .lang-select:focus {
   border-color: var(--border-focus);
+}
+
+.settings hr {
+  border: 0;
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
 }
 
 /* --- In-app notification toast --- */
