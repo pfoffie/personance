@@ -354,9 +354,9 @@ const App = (() => {
     try {
       const rawText = await file.text();
       const parsed = JSON.parse(rawText);
-      const importedItems = Array.isArray(parsed?.items) ? parsed.items : (Array.isArray(parsed?.contacts) ? parsed.contacts : null);
+      const importedItems = _getImportedItems(parsed);
       if (!importedItems || typeof parsed?.settings !== 'object' || parsed.settings === null) {
-        throw new Error('invalid import file');
+        throw new Error('Import file must contain an items (or contacts) array and a settings object.');
       }
       const importedContacts = importedItems
         .map((item) => _normalizeImportedContact(item))
@@ -492,6 +492,12 @@ const App = (() => {
       next.userId = settings.userId.trim();
     }
     return next;
+  }
+
+  function _getImportedItems(parsed) {
+    if (Array.isArray(parsed?.items)) return parsed.items;
+    if (Array.isArray(parsed?.contacts)) return parsed.contacts;
+    return null;
   }
 
   function _clampInt(value, min, max, fallback) {
