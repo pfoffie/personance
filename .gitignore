@@ -12,8 +12,6 @@ Thumbs.db
 # git pull file
 update.php
 
-# config
-push-config.js
-
 # custom push provider (user-supplied, never committed)
 /custom/
+OneSignalSDKWorker.js

@@ -3,12 +3,12 @@
  * Caches all app assets for full offline support.
  */
 
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.3.3';
 const CACHE_NAME = `personance-v${APP_VERSION}`;
 const ASSETS = [
   './',
   './index.html',
-  './css/styles.css?v=1.3.1',
+  './css/styles.css',
   './js/app.js',
   './js/i18n.js',
   './js/store.js',
@@ -28,6 +28,10 @@ const ASSETS = [
   './assets/icons/icon_180.png',
   './assets/share.jpg',
 ];
+// add Version to all assets to ensure cache updates on new releases
+for (let i = 0; i < ASSETS.length; i++) {
+  ASSETS[i] += `?v=${APP_VERSION}`;
+}
 
 // Install — cache all assets
 self.addEventListener('install', (event) => {
