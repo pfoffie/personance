@@ -15,3 +15,4 @@ update.php
 # custom push provider (user-supplied, never committed)
 /custom/
 OneSignalSDKWorker.js
+.htaccess

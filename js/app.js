@@ -12,7 +12,7 @@ import ContactEditorView from './views/contactEditor.js';
 import SettingsView from './views/settings.js';
 import IntroView from './views/intro.js'
 
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.5.2';
 const VERSION_STORAGE_KEY = 'personance-installed-version';
 
 const App = (() => {
