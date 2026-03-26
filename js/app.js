@@ -6,13 +6,12 @@ import Store from './store.js';
 import I18n from './i18n.js';
 import Scheduler from './scheduler.js';
 import Notifications from './notifications.js';
-import PushProvider from './push.js';
 import ContactListView from './views/contactList.js';
 import ContactEditorView from './views/contactEditor.js';
 import SettingsView from './views/settings.js';
 import IntroView from './views/intro.js'
 
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.5.3';
 const VERSION_STORAGE_KEY = 'personance-installed-version';
 
 const App = (() => {
@@ -28,7 +27,6 @@ const App = (() => {
   let _swListenersBound = false;
   let _installPrompt = null;
   let _installAvailable = false;
-  let _notificationState = { permission: 'default', pushSupported: false, enabled: false, pushConfigured: false };
 
   async function init() {
     _root = document.getElementById('app');
@@ -65,8 +63,6 @@ const App = (() => {
 
     // Init notifications
     Notifications.init();
-    Notifications.setEnabled(_settings.notificationsEnabled);
-    await _bootstrapNotifications();
 
     // Load contacts
     _contacts = await Store.getAllContacts();
@@ -130,19 +126,12 @@ const App = (() => {
 
   async function _showSettings() {
     _clearViewBindings();
-    const notificationState = {
-      ...Notifications.getSupportState(),
-      pushConfigured: PushProvider.isConfigured(),
-    };
     _root.innerHTML = SettingsView.render(_settings, {
       updateAvailable: _updateAvailable,
-      notificationState,
       installAvailable: _installAvailable && !_isStandalone(),
     });
     _unbindView = SettingsView.bind(_root, {
       settings: _settings,
-      notificationState,
-      onToggleNotifications: (val) => _toggleNotifications(val),
       onInstall: () => _promptInstall(),
       onSave: (data, langChanged) => _saveSettings(data, langChanged),
       onApplyUpdate: () => _applyUpdate(),
@@ -159,11 +148,6 @@ const App = (() => {
     let contact;
     if (existingId) {
       contact = await Store.getContact(existingId);
-      // Remove any previously scheduled push notification for this contact.
-      if (contact.pushNotificationId) {
-        PushProvider.removeNotification(contact.pushNotificationId);
-        contact.pushNotificationId = null;
-      }
       contact.name = data.name;
       contact.distance = data.distance;
       contact.uncertainty = data.uncertainty;
@@ -189,23 +173,11 @@ const App = (() => {
     await Store.saveContact(contact);
     _contacts = await Store.getAllContacts();
     _showList();
-    // Schedule a push notification for the new reminder date and persist the ID
-    _schedulePushForContact(contact).then(async (pushId) => {
-      if (pushId) {
-        contact.pushNotificationId = pushId;
-        await Store.saveContact(contact);
-      }
-    });
   }
 
   async function _releaseContact(id) {
     const contact = await Store.getContact(id);
     if (!contact) return;
-    // Remove any previously scheduled push notification for this contact.
-    if (contact.pushNotificationId) {
-      PushProvider.removeNotification(contact.pushNotificationId);
-      contact.pushNotificationId = null;
-    }
     // Reschedule
     contact.reminderDate = Scheduler.computeNextReminder(
       contact.distance, contact.uncertainty,
@@ -215,26 +187,13 @@ const App = (() => {
     await Store.saveContact(contact);
     _contacts = await Store.getAllContacts();
     _showList();
-    // Schedule a push notification for the rescheduled reminder and persist the ID
-    _schedulePushForContact(contact).then(async (pushId) => {
-      if (pushId) {
-        contact.pushNotificationId = pushId;
-        await Store.saveContact(contact);
-      }
-    });
-    if (_settings.notificationsEnabled) {
-      Notifications.notify(
-        I18n.t('contacts.released'),
-        Scheduler.formatApproxDate(contact.reminderDate, I18n.currentLang())
-      );
-    }
+    Notifications.notify(
+      I18n.t('contacts.released'),
+      Scheduler.formatApproxDate(contact.reminderDate, I18n.currentLang())
+    );
   }
 
   async function _deleteContact(id) {
-    const contact = await Store.getContact(id);
-    if (contact && contact.pushNotificationId) {
-      PushProvider.removeNotification(contact.pushNotificationId);
-    }
     await Store.deleteContact(id);
     _contacts = await Store.getAllContacts();
     _showList();
@@ -271,68 +230,6 @@ const App = (() => {
       await I18n.load(_settings.language);
       _showSettings(); // Re-render with new language
     }
-  }
-
-  async function _bootstrapNotifications() {
-    // Load the custom push provider module (no-op when custom/push.js is absent).
-    await PushProvider.init();
-    _notificationState = {
-      ...Notifications.getSupportState(),
-      pushConfigured: PushProvider.isConfigured(),
-    };
-    if (!_settings.notificationsEnabled) return;
-    if (Notifications.getPermission() !== 'granted') {
-      _settings.notificationsEnabled = false;
-      await Store.saveSettings(_settings);
-      Notifications.setEnabled(false);
-      return;
-    }
-    // Re-register with the push provider on startup if configured.
-    // Fire-and-forget: scheduleNotification() will await this before using the userId.
-    if (PushProvider.isConfigured()) {
-      PushProvider.registerNotifications(); // intentional fire-and-forget
-    }
-  }
-
-  async function _toggleNotifications(enable) {
-    if (!enable) {
-      Notifications.setEnabled(false);
-      _settings.notificationsEnabled = false;
-      await Store.saveSettings(_settings);
-      _notificationState = {
-        ...Notifications.getSupportState(),
-        pushConfigured: PushProvider.isConfigured(),
-      };
-      return { ..._notificationState };
-    }
-
-    // Request browser notification permission.
-    const perm = Notifications.getPermission() === 'default'
-      ? await Notifications.requestPermission()
-      : Notifications.getPermission();
-
-    if (perm !== 'granted') {
-      return {
-        enabled: false,
-        permission: perm,
-        pushSupported: Notifications.isSupported(),
-        pushConfigured: PushProvider.isConfigured(),
-      };
-    }
-
-    // Register with the custom push provider if configured.
-    if (PushProvider.isConfigured()) {
-      await PushProvider.registerNotifications();
-    }
-
-    Notifications.setEnabled(true);
-    _settings.notificationsEnabled = true;
-    await Store.saveSettings(_settings);
-    _notificationState = {
-      ...Notifications.getSupportState(),
-      pushConfigured: PushProvider.isConfigured(),
-    };
-    return { ..._notificationState, permission: perm };
   }
 
   async function _exportData() {
@@ -402,34 +299,14 @@ const App = (() => {
     return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   }
 
-  // --- Background checks ---
-
-  /**
-   * Schedule a push notification for a contact's reminder date via the custom provider.
-   * @returns {Promise<string|null>}  message ID or null
-   */
-  async function _schedulePushForContact(contact) {
-    if (!_settings.notificationsEnabled) return null;
-    if (!PushProvider.isConfigured()) return null;
-    if (!contact.reminderDate) return null;
-    const deliverAt = new Date(contact.reminderDate);
-    if (deliverAt.getTime() <= Date.now()) return null;
-    return PushProvider.scheduleNotification(
-      deliverAt.getTime(),
-      contact.name
-    );
-  }
-
   function _checkDueContacts() {
     const now = new Date();
     _contacts.forEach(c => {
       if (c.reminderDate && new Date(c.reminderDate) <= now && !c._notified) {
-        if (_settings.notificationsEnabled) {
-          Notifications.notify(
-            I18n.t('contacts.dueNow'),
-            c.name
-          );
-        }
+        Notifications.notify(
+          I18n.t('contacts.dueNow'),
+          c.name
+        );
         c._notified = true;
       }
     });

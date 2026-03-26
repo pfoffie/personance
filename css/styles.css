@@ -442,34 +442,38 @@ input[type="range"] {
   line-height: 1.5;
 }
 
-/* Day picker */
-.day-picker {
-  display: flex;
+/* Day picker (matches hour grid style) */
+.day-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   gap: 4px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  border: 1px solid var(--border);
 }
 
-.day-picker button {
-  flex: 1;
-  padding: 10px 0;
+.day-btn {
+  padding: 8px 0;
+  border-radius: var(--radius-xs);
   border: none;
   background: var(--bg-input);
   color: var(--text-muted);
   font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease), transform 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
-.day-picker button.active {
+.day-btn.active {
   background: var(--accent);
   color: #fff;
 }
-.day-picker button:hover:not(.active) {
+.day-btn:hover:not(.active) {
   background: var(--bg-elevated);
+}
+.day-btn:active {
+  transform: scale(0.9);
 }
 
 /* Hour picker (grid rows) */
