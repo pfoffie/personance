@@ -5,23 +5,16 @@ import I18n from '../i18n.js';
 
 const SettingsView = (() => {
 
-  function render(settings, { updateAvailable = false, notificationState = {}, installAvailable = false } = {}) {
+  function render(settings, { updateAvailable = false, installAvailable = false } = {}) {
     const t = I18n.t.bind(I18n);
     const lang = I18n.currentLang();
-    const notifState = {
-      permission: notificationState.permission || 'default',
-      pushSupported: notificationState.pushSupported !== false,
-      enabled: !!settings.notificationsEnabled,
-      pushConfigured: !!notificationState.pushConfigured,
-    };
-    const notificationStatus = _notificationStatusText(notifState, t);
 
     // Day buttons — week starts Monday, JS getDay() 0=Sun
     const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // Mon–Sun
     const dayKeys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     const dayButtons = dayOrder.map((day, i) => {
       const active = settings.availableDays.includes(day);
-      return `<button data-day="${day}" class="${active ? 'active' : ''}">${t('settings.days.' + dayKeys[i])}</button>`;
+      return `<button data-day="${day}" class="day-btn ${active ? 'active' : ''}">${t('settings.days.' + dayKeys[i])}</button>`;
     }).join('');
 
     // Hour grid — two rows: 0-11 and 12-23
@@ -57,8 +50,8 @@ const SettingsView = (() => {
         <div class="settings-section settings-block">
           <h2>${t('settings.availableDays')}</h2>
           <p>${t('settings.availableDaysDescription')}</p>
-          <div class="day-picker">
-            ${dayButtons}
+          <div class="hour-grid">
+            <div class="day-row">${dayButtons}</div>
           </div>
         </div>
 
@@ -84,20 +77,6 @@ const SettingsView = (() => {
         </div>
 
         <hr/>
-
-        <div class="settings-section settings-block">
-          <h2>${t('settings.notifications')}</h2>
-          <p>${t('settings.notificationsDescription')}</p>
-          <label class="toggle-label">
-            <span class="toggle-text">
-              <strong>${t('settings.notificationsEnable')}</strong>
-              <small data-notification-status>${notificationStatus}</small>
-            </span>
-            <span class="toggle-switch ${settings.notificationsEnabled ? 'active' : ''} ${notifState.pushSupported ? '' : 'disabled'}" id="notifications-toggle">
-				<span class="toggle-knob"></span>
-			</span>
-          </label>
-        </div>
 
         <div class="settings-section settings-block pwa-section">
           <h2>${t('settings.pwaTitle')}</h2>
@@ -129,7 +108,7 @@ const SettingsView = (() => {
       </div>`;
   }
 
-  function bind(el, { settings, notificationState = {}, onSave, onBack, onApplyUpdate, onToggleNotifications, onInstall, onClearCache, onExportData, onImportData }) {
+  function bind(el, { settings, onSave, onBack, onApplyUpdate, onInstall, onClearCache, onExportData, onImportData }) {
     const controller = new AbortController();
     const { signal } = controller;
     const t = I18n.t.bind(I18n);
@@ -139,11 +118,10 @@ const SettingsView = (() => {
       availableHours: [...settings.availableHours],
       language: settings.language,
       surpriseMode: !!settings.surpriseMode,
-      notificationsEnabled: !!settings.notificationsEnabled,
     };
 
     // Day toggle
-    el.querySelectorAll('.day-picker button').forEach(btn => {
+    el.querySelectorAll('.day-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const day = parseInt(btn.dataset.day);
         const idx = current.availableDays.indexOf(day);
@@ -190,25 +168,6 @@ const SettingsView = (() => {
         current.surpriseMode = !current.surpriseMode;
         surpriseToggle.classList.toggle('active', current.surpriseMode);
         _autoSave();
-      }, { signal });
-    }
-
-    const notificationsToggle = el.querySelector('#notifications-toggle');
-    const notificationsStatus = el.querySelector('[data-notification-status]');
-    if (notificationsToggle && typeof onToggleNotifications === 'function') {
-      notificationsToggle.addEventListener('click', async () => {
-        if (notificationsToggle.classList.contains('disabled')) return;
-        notificationsStatus.textContent = t('settings.notificationsWorking');
-        const result = await onToggleNotifications(!current.notificationsEnabled);
-        current.notificationsEnabled = !!result.enabled;
-        notificationsToggle.classList.toggle('active', current.notificationsEnabled);
-        const state = {
-          permission: result.permission || notificationState.permission,
-          pushSupported: typeof result.pushSupported === 'boolean' ? result.pushSupported : notificationState.pushSupported,
-          enabled: current.notificationsEnabled,
-          pushConfigured: typeof result.pushConfigured === 'boolean' ? result.pushConfigured : notificationState.pushConfigured,
-        };
-        notificationsStatus.textContent = _notificationStatusText(state, t);
       }, { signal });
     }
 
@@ -260,18 +219,6 @@ const SettingsView = (() => {
       clearTimeout(_saveTimer);
       controller.abort();
     };
-  }
-
-  function _notificationStatusText(state, t) {
-    if (!state.pushSupported) return t('settings.notificationsUnsupported');
-    if (state.permission === 'denied') return t('settings.notificationsDenied');
-    if (state.enabled && state.permission === 'granted') {
-      return state.pushConfigured
-        ? t('settings.notificationsOnPush')
-        : t('settings.notificationsOn');
-    }
-    if (state.permission === 'granted') return t('settings.notificationsOff');
-    return t('settings.notificationsPrompt');
   }
 
   return { render, bind };
